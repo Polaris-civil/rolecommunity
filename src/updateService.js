@@ -1,7 +1,9 @@
 import { Capacitor, CapacitorHttp, registerPlugin } from '@capacitor/core';
 import { APP_ID, APP_VERSION, APP_VERSION_CODE, isUpdateAvailable, normalizeUpdateManifest } from './updateManifest.js';
 
-const SETTINGS_KEY = 'rolecommunity.update.v1';
+const SETTINGS_KEY = 'rolecommunity.update.v2';
+const LEGACY_SETTINGS_KEY = 'rolecommunity.update.v1';
+const DEFAULT_MANIFEST_URL = 'https://github.com/Polaris-civil/rolecommunity/releases/latest/download/update-manifest.json';
 const nativeUpdater = registerPlugin('SelfHostedUpdater');
 
 function storage() {
@@ -16,17 +18,19 @@ function defaultManifestUrl() {
   const configured = String(import.meta.env.VITE_UPDATE_MANIFEST_URL || '').trim();
   if (configured) return configured;
   if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') return `${window.location.origin}/update-manifest.json`;
-  return '';
+  return DEFAULT_MANIFEST_URL;
 }
 
 export function readUpdateSettings() {
-  const saved = storage()?.getItem(SETTINGS_KEY);
+  const saved = storage()?.getItem(SETTINGS_KEY) || storage()?.getItem(LEGACY_SETTINGS_KEY);
   if (!saved) return { manifestUrl: defaultManifestUrl(), autoCheck: true, lastCheckedAt: '' };
   try {
     const parsed = JSON.parse(saved);
+    const autoCheck = parsed.autoCheck !== false;
+    const savedManifestUrl = String(parsed.manifestUrl || '').trim();
     return {
-      manifestUrl: parsed.manifestUrl === undefined ? defaultManifestUrl() : String(parsed.manifestUrl || '').trim(),
-      autoCheck: parsed.autoCheck !== false,
+      manifestUrl: parsed.manifestUrl === undefined || (autoCheck && !savedManifestUrl) ? defaultManifestUrl() : savedManifestUrl,
+      autoCheck,
       lastCheckedAt: String(parsed.lastCheckedAt || ''),
     };
   } catch {
