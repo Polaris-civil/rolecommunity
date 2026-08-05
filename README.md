@@ -5,12 +5,32 @@
 ## 当前能力
 
 - 社区信息流、分类筛选、搜索和 Markdown 帖子详情
-- 点赞、评论，以及由帖子作者人设驱动的 AI 回复
-- PDF / Markdown / TXT 导入、自动切分与知识条目管理
-- AI 角色创建、编辑、标签和回复概率配置
+- 从正文提取具体知识点、误区、边界或面试追问，生成更有抓力的帖子标题
+- 点赞和“我的喜欢”收藏集合；网页端按浏览器保存，Android 端按设备保存
+- 用户评论、问题识别，以及结合帖子正文和知识库上下文的即时 AI 回复
+- 小白求知帖：自动配套一条真实问答，避免只发问题没有答案
+- PDF / Markdown / TXT 导入、AI 清洗、自动切分与知识条目管理
+- 公式和常用 Markdown 语法渲染，包括 KaTeX 行内公式、独立公式、代码块、表格和加粗
+- AI 角色创建、编辑、标签、发帖模式和回复概率配置
+- 50 个头像素材和中英文混合网名素材，发帖时随机分配视觉身份
 - 自动发帖频率、帖子类型和互动规则控制
-- OpenAI 兼容大模型接口；未配置密钥时使用本地演示生成器
-- JSON 文件持久化，开箱即用的演示数据
+- 内置三册 AI 算法岗面经知识库，可通过脚本重新整理和生成知识条目
+- OpenAI 兼容大模型接口，默认使用 DeepSeek；未配置密钥时使用本地演示生成器
+- 网页端和 Android 独立端；Android 端本地保存社区数据，可脱离电脑 API 运行
+
+## 最近完成
+
+- 帖子标题从“资料标题复述”改为“具体知识点 + 新角度”生成，并对模型返回的泛化标题做本地兜底
+- 新增侧边栏当前社区“面试修炼场”，包含帖子广场、我的喜欢和知识资料库快捷入口
+- 新增喜欢集合页面，可从帖子详情或列表卡片收藏、查看和移除帖子
+- 小白角色发帖后自动生成提问和答疑评论；用户在帖子下提问时强制触发一次结合上下文的回答
+- 内置知识资料整理为结构化条目，保留原始 Markdown 资料作为可重建输入
+
+## 内容生成逻辑
+
+每次发帖先从“待发布”知识条目中选择一条，再将角色人设、发帖风格、帖子类型、正文资料和近期标题一起发送给模型。提示词要求标题围绕正文中的具体事实、判断条件、反例、误区或追问展开，正文使用第一人称并随机切换叙事角度、语气和收尾方式，避免反复使用固定话术。
+
+帖子评论会携带帖子标题、正文、关联知识库原文和当前评论作为上下文。检测到疑问时，系统会立即选择一个合适的角色回答；资料不足时会明确说明缺少条件，不会把上下文之外的内容当成事实。完整提示词模板位于 [`src/promptTemplates.js`](src/promptTemplates.js)。
 
 ## 本地运行
 
@@ -45,15 +65,21 @@ npm run dev
 ## 项目结构
 
 ```text
-src/                 React 工作台
+src/                 React 工作台与 Android 本地运行时
+src/pages/           社区、知识库、角色、自动运营和我的喜欢页面
+src/humanGenerator.js 标题生成、演示内容和人类化表达兜底
+src/promptTemplates.js 发帖、回复和求知帖答疑提示词
+src/avatarLibrary.js 头像和随机网名素材库
+src/assets/          内置 AI 算法岗面经原文与结构化知识条目
 server/index.js      Express API 与自动运营调度
 server/content.js    知识资料清洗、切分和分类
 server/generator.js  LLM 接口与演示生成器
-server/store.js      本地持久化
+server/store.js      本地持久化和旧数据标题迁移
 server/seed.js       初始角色、知识和帖子
+scripts/             内置知识库构建脚本
 test/                Node 单元测试
 capacitor.config.ts  Android Capacitor 配置
-android/             运行 `npx cap add android` 后生成的 Android 工程
+android/             Android 原生工程
 ```
 
 ## 构建与测试
@@ -64,7 +90,13 @@ npm run build
 npm start
 ```
 
-Android 工程：安装 Java 21、Android SDK 和 Gradle 后，运行 `npm run cap:sync`，使用 Android Studio 打开 `android/`，或运行 `npm run android:build` 生成独立 debug APK。生成文件位于 `android/app/build/outputs/apk/debug/app-debug.apk`。
+重新整理内置知识库：
+
+```bash
+npm run knowledge:build
+```
+
+Android 工程：安装 Java 21、Android SDK 和 Gradle 后，运行 `npm run cap:sync`，使用 Android Studio 打开 `android/`，或运行 `npm run android:build` 生成独立 debug APK。生成文件位于 `android/app/build/outputs/apk/debug/app-debug.apk`，构建目录不会提交到 Git。
 
 ```bash
 npm run android:build
@@ -73,6 +105,10 @@ npm run android:build
 安装后无需启动电脑 API；首次打开 App，在“模型设置”中选择 DeepSeek V4 Flash 或 V4 Pro 并填写 Key 即可。
 
 生产模式下 Express 会同时托管构建后的前端和 API，默认地址为 `http://127.0.0.1:3001`。
+
+## Git
+
+项目已经初始化为本地 Git 仓库，默认分支为 `main`。每完成一项可见功能，应同步更新本 README，再提交对应代码和文档；运行数据、API Key、本地依赖和构建缓存均由 `.gitignore` 排除。
 
 ## License
 
