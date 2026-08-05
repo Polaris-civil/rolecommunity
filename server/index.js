@@ -8,6 +8,8 @@ import pdf from 'pdf-parse';
 import { randomProfile } from '../src/avatarLibrary.js';
 import { generateFallbackQuestion } from '../src/humanGenerator.js';
 import { chooseReplyRole, isQuestionComment } from '../src/replyRouting.js';
+import { addKnowledgeBase, ensureKnowledgeBases } from '../src/knowledgeBases.js';
+import { recordFallbackUsage, recordTokenUsage, summarizeUsage } from '../src/usage.js';
 import { extractKnowledge } from './content.js';
 import { generateKnowledgeAnswer, generatePost, generateReply } from './generator.js';
 import { loadRuntimeConfig, publicRuntimeConfig, saveRuntimeConfig } from './runtime-config.js';
@@ -42,12 +44,16 @@ const withProfile = (role, profile) => {
 };
 const decoratePost = (store, post) => ({ ...post, author: withProfile(roleFor(store, post), post.authorProfile) });
 
-async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion' } = {}) {
-  const available = store.knowledge.filter((item) => item.status === 'pending');
+async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion', category = '全部', knowledgeBaseId } = {}) {
+  ensureKnowledgeBases(store);
+  const activeKnowledgeBaseId = String(knowledgeBaseId || store.settings.activeKnowledgeBaseId || store.knowledgeBases[0]?.id || '');
+  const available = store.knowledge.filter((item) => item.status === 'pending'
+    && item.knowledgeBaseId === activeKnowledgeBaseId
+    && (category === '全部' || !category || item.category === category));
   const knowledge = knowledgeId
-    ? store.knowledge.find((item) => item.id === knowledgeId)
+    ? store.knowledge.find((item) => item.id === knowledgeId && item.knowledgeBaseId === activeKnowledgeBaseId)
     : available[Math.floor(Math.random() * available.length)];
-  if (!knowledge) throw Object.assign(new Error('没有可发布的知识点'), { status: 409 });
+  if (!knowledge) throw Object.assign(new Error(category && category !== '全部' ? '这个分类暂时没有待发布内容' : '这个知识库没有可发布的内容'), { status: 409 });
 
   const matchingRoles = store.roles.filter((role) =>
     role.tags.some((tag) => knowledge.tags.includes(tag) || tag === knowledge.category),
@@ -62,11 +68,14 @@ async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion
     knowledge,
     role,
     type: effectiveType,
-    recentTitles: store.posts.slice(0, 12).map((post) => `${post.title}：${String(post.body || '').replace(/\s+/g, ' ').slice(0, 90)}`),
+    recentTitles: store.posts.filter((post) => post.knowledgeBaseId === activeKnowledgeBaseId).slice(0, 12).map((post) => `${post.title}：${String(post.body || '').replace(/\s+/g, ' ').slice(0, 90)}`),
+    onUsage: (usage) => recordTokenUsage(store, usage, 'post'),
+    onFallback: () => recordFallbackUsage(store),
   });
   const post = {
     id: `post-${randomUUID()}`,
     knowledgeId: knowledge.id,
+    knowledgeBaseId: knowledge.knowledgeBaseId,
     authorId: role.id,
     title: generated.title,
     excerpt: generated.excerpt,
@@ -100,7 +109,13 @@ async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion
       id: `comment-${randomUUID()}`,
       authorId: answerRole.id,
       authorProfile: randomProfile(),
-      content: await generateKnowledgeAnswer({ post, knowledge, role: answerRole }),
+      content: await generateKnowledgeAnswer({
+        post,
+        knowledge,
+        role: answerRole,
+        onUsage: (usage) => recordTokenUsage(store, usage, 'qa-answer'),
+        onFallback: () => recordFallbackUsage(store),
+      }),
       createdAt: answerCreatedAt,
       isAi: true,
       qaType: 'answer',
@@ -110,6 +125,7 @@ async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion
       type: 'reply',
       text: `${answerRole.nickname} 回答了求知帖`,
       createdAt: answerCreatedAt,
+      knowledgeBaseId: knowledge.knowledgeBaseId,
     });
   }
   knowledge.status = 'published';
@@ -121,6 +137,7 @@ async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion
     type: 'post',
     text: `${role.nickname} 发布了“${post.title}”`,
     createdAt: post.createdAt,
+    knowledgeBaseId: knowledge.knowledgeBaseId,
   });
   store.activity = store.activity.slice(0, 30);
   return { post, role, generated };
@@ -136,13 +153,16 @@ app.get('/api/llm-config', (req, res) => {
 
 app.get('/api/bootstrap', withErrorHandling(async (req, res) => {
   const store = await readStore();
+  ensureKnowledgeBases(store);
   res.json({
     roles: store.roles,
     posts: store.posts.map((post) => decoratePost(store, post)),
     knowledge: store.knowledge,
     settings: store.settings,
     activity: store.activity,
+    knowledgeBases: store.knowledgeBases,
     stats: summarize(store),
+    usage: summarizeUsage(store),
     aiMode: process.env.OPENAI_API_KEY ? 'llm' : 'demo',
     llm: publicRuntimeConfig(),
   });
@@ -228,6 +248,8 @@ app.post('/api/posts/:id/comments', withErrorHandling(async (req, res) => {
           role: responder,
           knowledge,
           recentReplies: post.comments.filter((item) => item.isAi).map((item) => item.content),
+          onUsage: (usage) => recordTokenUsage(store, usage, 'reply'),
+          onFallback: () => recordFallbackUsage(store),
         }),
         createdAt: new Date().toISOString(),
         isAi: true,
@@ -240,6 +262,7 @@ app.post('/api/posts/:id/comments', withErrorHandling(async (req, res) => {
         type: 'reply',
         text: `${responder.nickname} ${question ? '回答了' : '回复了'}社区访客`,
         createdAt: aiReply.createdAt,
+        knowledgeBaseId: post.knowledgeBaseId,
       });
     }
     return { comment, aiReply, author: responder || author, responder: responder || author, isQuestion: question, immediate: question };
@@ -266,16 +289,28 @@ app.post('/api/knowledge/import', upload.single('file'), withErrorHandling(async
   }
   const entries = extractKnowledge(text, source);
   if (!entries.length) throw Object.assign(new Error('没有识别到足够完整的知识内容'), { status: 400 });
-  await updateStore((store) => {
+  const result = await updateStore((store) => {
+    ensureKnowledgeBases(store);
+    const requestedBaseId = String(req.body?.knowledgeBaseId || store.settings.activeKnowledgeBaseId || '').trim();
+    const requestedBaseName = String(req.body?.knowledgeBaseName || '').trim();
+    const base = requestedBaseId === 'new'
+      ? addKnowledgeBase(store, { name: requestedBaseName || source })
+      : store.knowledgeBases.find((item) => item.id === requestedBaseId) || addKnowledgeBase(store, { id: requestedBaseId || undefined, name: requestedBaseName || source });
+    entries.forEach((entry) => {
+      entry.knowledgeBaseId = base.id;
+      entry.knowledgeBaseName = base.name;
+    });
     store.knowledge.unshift(...entries);
     store.activity.unshift({
       id: `activity-${randomUUID()}`,
       type: 'import',
       text: `已从 ${source} 导入 ${entries.length} 条知识`,
       createdAt: new Date().toISOString(),
+      knowledgeBaseId: base.id,
     });
+    return { base, entries };
   });
-  res.status(201).json({ count: entries.length, entries });
+  res.status(201).json({ count: result.entries.length, entries: result.entries, knowledgeBase: result.base });
 }));
 
 app.post('/api/knowledge', withErrorHandling(async (req, res) => {
@@ -294,8 +329,19 @@ app.post('/api/knowledge', withErrorHandling(async (req, res) => {
     source: String(req.body?.source || '手动录入'),
     createdAt: new Date().toISOString(),
   };
-  await updateStore((store) => store.knowledge.unshift(entry));
-  res.status(201).json(entry);
+  const result = await updateStore((store) => {
+    ensureKnowledgeBases(store);
+    const requestedBaseId = String(req.body?.knowledgeBaseId || store.settings.activeKnowledgeBaseId || '').trim();
+    const requestedBaseName = String(req.body?.knowledgeBaseName || '').trim();
+    const base = requestedBaseId === 'new'
+      ? addKnowledgeBase(store, { name: requestedBaseName || entry.source })
+      : store.knowledgeBases.find((item) => item.id === requestedBaseId) || addKnowledgeBase(store, { id: requestedBaseId || undefined, name: requestedBaseName || entry.source });
+    entry.knowledgeBaseId = base.id;
+    entry.knowledgeBaseName = base.name;
+    store.knowledge.unshift(entry);
+    return { entry, base };
+  });
+  res.status(201).json({ ...result.entry, knowledgeBase: result.base });
 }));
 
 app.patch('/api/knowledge/:id', withErrorHandling(async (req, res) => {
@@ -370,9 +416,14 @@ app.delete('/api/roles/:id', withErrorHandling(async (req, res) => {
 
 app.patch('/api/settings', withErrorHandling(async (req, res) => {
   const settings = await updateStore((store) => {
+    ensureKnowledgeBases(store);
     const allowed = ['autoPostEnabled', 'postsPerDay', 'replyProbability', 'replyDelaySeconds', 'defaultPostType'];
     for (const key of allowed) {
       if (req.body?.[key] !== undefined) store.settings[key] = req.body[key];
+    }
+    if (req.body?.activeKnowledgeBaseId !== undefined
+      && store.knowledgeBases.some((base) => base.id === req.body.activeKnowledgeBaseId)) {
+      store.settings.activeKnowledgeBaseId = req.body.activeKnowledgeBaseId;
     }
     return store.settings;
   });
@@ -382,6 +433,8 @@ app.patch('/api/settings', withErrorHandling(async (req, res) => {
 app.post('/api/automation/run', withErrorHandling(async (req, res) => {
   const result = await updateStore((store) => publishKnowledge(store, {
     type: req.body?.type || store.settings.defaultPostType,
+    category: req.body?.category || '全部',
+    knowledgeBaseId: req.body?.knowledgeBaseId || store.settings.activeKnowledgeBaseId,
   }));
   res.status(201).json({ ...result, post: { ...result.post, author: withProfile(result.role, result.post.authorProfile) } });
 }));
@@ -392,8 +445,8 @@ setInterval(async () => {
       if (!store.settings.autoPostEnabled) return;
       const interval = (24 * 60 * 60 * 1000) / Math.max(1, Number(store.settings.postsPerDay));
       const elapsed = Date.now() - new Date(store.settings.lastGeneratedAt || 0).getTime();
-      if (elapsed >= interval && store.knowledge.some((item) => item.status === 'pending')) {
-        await publishKnowledge(store, { type: store.settings.defaultPostType });
+      if (elapsed >= interval && store.knowledge.some((item) => item.status === 'pending' && item.knowledgeBaseId === store.settings.activeKnowledgeBaseId)) {
+        await publishKnowledge(store, { type: store.settings.defaultPostType, knowledgeBaseId: store.settings.activeKnowledgeBaseId });
       }
     });
   } catch (error) {

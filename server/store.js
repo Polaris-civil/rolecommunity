@@ -5,6 +5,8 @@ import { createBuiltinKnowledge } from './builtin-knowledge.js';
 import { createSeedData } from './seed.js';
 import { AVATAR_LIBRARY_VERSION, profileForSeed } from '../src/avatarLibrary.js';
 import { ensureCatchyTitle } from '../src/humanGenerator.js';
+import { ensureKnowledgeBases } from '../src/knowledgeBases.js';
+import { emptyUsage } from '../src/usage.js';
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.resolve(serverDir, '../data');
@@ -80,6 +82,9 @@ async function ensureStore() {
     const contents = await readFile(dataFile, 'utf8');
     if (!builtInChecked) {
       const store = JSON.parse(contents);
+      const originalStore = JSON.stringify(store);
+      ensureKnowledgeBases(store);
+      if (!store.usage) store.usage = emptyUsage();
       const builtins = createBuiltinKnowledge();
       const builtinById = new Map(builtins.map((item) => [item.id, item]));
       let changed = migrateLegacyDemoData(store);
@@ -148,6 +153,8 @@ async function ensureStore() {
           changed = true;
         }
       }
+      ensureKnowledgeBases(store);
+      changed = JSON.stringify(store) !== originalStore || changed;
       if (changed) {
         await writeFile(dataFile, JSON.stringify(store, null, 2));
       }
@@ -163,6 +170,8 @@ async function ensureStore() {
       }
     }
     seeded.knowledge.unshift(...createBuiltinKnowledge());
+    ensureKnowledgeBases(seeded);
+    seeded.usage = emptyUsage();
     await writeFile(dataFile, JSON.stringify(seeded, null, 2));
     builtInChecked = true;
   }

@@ -28,6 +28,7 @@ async function callModel(messages, { json = false, temperature = 0.86 } = {}) {
   if (!apiKey) return null;
 
   const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
+  const model = process.env.OPENAI_MODEL || 'deepseek-v4-flash';
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -35,7 +36,7 @@ async function callModel(messages, { json = false, temperature = 0.86 } = {}) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'deepseek-v4-flash',
+      model,
       temperature,
       messages,
       ...(json ? { response_format: { type: 'json_object' } } : {}),
@@ -48,14 +49,18 @@ async function callModel(messages, { json = false, temperature = 0.86 } = {}) {
   }
 
   const payload = await response.json();
-  return payload.choices?.[0]?.message?.content || '';
+  return {
+    output: payload.choices?.[0]?.message?.content || '',
+    usage: payload.usage || {},
+    model,
+  };
 }
 
 export async function generatePost(input) {
   const variation = input.variation || createVariationBrief({ recentTitles: input.recentTitles || [] });
   const promptInput = { ...input, variation };
   try {
-    const output = await callModel([
+    const result = await callModel([
       {
         role: 'system',
         content: buildPostSystemPrompt(promptInput),
@@ -65,23 +70,28 @@ export async function generatePost(input) {
         content: buildPostUserPrompt(promptInput),
       },
     ], { json: true, temperature: 0.92 });
-    if (!output) return { ...mockGeneratePost({ ...input, variationSeed: variation.seed }), source: 'demo' };
-    const generated = parseJsonObject(output);
+    if (result) input.onUsage?.({ ...(result.usage || {}), model: result.model });
+    if (!result?.output) {
+      input.onFallback?.();
+      return { ...mockGeneratePost({ ...input, variationSeed: variation.seed }), source: 'demo' };
+    }
+    const generated = parseJsonObject(result.output);
     return {
       ...generated,
       title: ensureCatchyTitle({ generated, knowledge: input.knowledge, role: input.role, type: input.type, variationSeed: variation.seed }),
       source: 'llm',
     };
   } catch (error) {
+    input.onFallback?.();
     return { ...mockGeneratePost({ ...input, variationSeed: variation.seed }), source: 'demo', fallbackReason: error.message };
   }
 }
 
-export async function generateReply({ post, comment, role, recentReplies = [], knowledge }) {
+export async function generateReply({ post, comment, role, recentReplies = [], knowledge, onUsage, onFallback }) {
   const variation = createVariationBrief({ kind: 'reply', recentReplies });
   const question = isQuestionComment(comment.content);
   try {
-    const output = await callModel([
+    const result = await callModel([
       {
         role: 'system',
         content: buildReplySystemPrompt({ role, variation, isQuestion: question }),
@@ -91,18 +101,20 @@ export async function generateReply({ post, comment, role, recentReplies = [], k
         content: buildReplyUserPrompt({ post, comment, knowledge, recentReplies: variation.recentReplies }),
       },
     ], { temperature: 0.9 });
-    if (output) return output.trim();
+    if (result) onUsage?.({ ...(result.usage || {}), model: result.model });
+    if (result?.output) return result.output.trim();
   } catch {
     // The local response keeps the interaction usable if the configured model is unavailable.
   }
 
+  onFallback?.();
   return generateFallbackReply({ post, comment, role, knowledge, variationSeed: variation.seed });
 }
 
-export async function generateKnowledgeAnswer({ post, knowledge, role }) {
+export async function generateKnowledgeAnswer({ post, knowledge, role, onUsage, onFallback }) {
   const variation = createVariationBrief({ kind: 'answer' });
   try {
-    const output = await callModel([
+    const result = await callModel([
       {
         role: 'system',
         content: buildKnowledgeAnswerSystemPrompt({ role, variation }),
@@ -112,9 +124,11 @@ export async function generateKnowledgeAnswer({ post, knowledge, role }) {
         content: buildKnowledgeAnswerUserPrompt({ post, knowledge }),
       },
     ], { temperature: 0.84 });
-    if (output) return output.trim();
+    if (result) onUsage?.({ ...(result.usage || {}), model: result.model });
+    if (result?.output) return result.output.trim();
   } catch {
     // Keep the required Q&A available when the configured model is unavailable.
   }
+  onFallback?.();
   return generateFallbackKnowledgeAnswer({ post, knowledge, role });
 }

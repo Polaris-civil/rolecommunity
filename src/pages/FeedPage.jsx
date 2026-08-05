@@ -12,7 +12,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Avatar } from '../components/Avatar.jsx';
 import { Modal } from '../components/Modal.jsx';
-import { categories, formatNumber, relativeTime } from '../utils.js';
+import { formatNumber, relativeTime } from '../utils.js';
 
 export function PostCard({ post, onOpen, onToggleLike }) {
   return (
@@ -47,8 +47,13 @@ export function PostCard({ post, onOpen, onToggleLike }) {
 
 function GenerateForm({ data, onClose, onGenerate }) {
   const pending = data.knowledge.filter((item) => item.status === 'pending');
+  const categoryCounts = useMemo(() => {
+    const counts = new Map();
+    pending.forEach((item) => counts.set(item.category || '未分类', (counts.get(item.category || '未分类') || 0) + 1));
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [pending]);
   const [values, setValues] = useState({
-    knowledgeId: pending[0]?.id || '',
+    category: '全部',
     roleId: '',
     type: 'discussion',
   });
@@ -66,13 +71,22 @@ function GenerateForm({ data, onClose, onGenerate }) {
   };
 
   return (
-    <form className="stack-form" onSubmit={submit}>
+    <form className="stack-form generate-form" onSubmit={submit}>
+      <div className="modal-intro">
+        <span className="modal-intro-icon"><Sparkles size={18} /></span>
+        <div><strong>从一个方向开始</strong><p>系统会在这个分类的待发布内容中随机抽取知识点，避免每次都重复同一种主题。</p></div>
+      </div>
       <label>
-        <span>知识点</span>
-        <select value={values.knowledgeId} onChange={(event) => setValues({ ...values, knowledgeId: event.target.value })} required>
-          {pending.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+        <span>选择内容分类</span>
+        <select value={values.category} onChange={(event) => setValues({ ...values, category: event.target.value })} required>
+          <option value="全部">全部分类 · {pending.length} 条待发布</option>
+          {categoryCounts.map(([item, count]) => <option key={item} value={item}>{item} · {count} 条待发布</option>)}
         </select>
       </label>
+      <div className="category-choice-grid" aria-label="待发布分类">
+        <button className={values.category === '全部' ? 'active' : ''} type="button" onClick={() => setValues({ ...values, category: '全部' })}><strong>全部方向</strong><small>{pending.length} 条</small></button>
+        {categoryCounts.slice(0, 6).map(([item, count]) => <button className={values.category === item ? 'active' : ''} type="button" key={item} onClick={() => setValues({ ...values, category: item })}><strong>{item}</strong><small>{count} 条</small></button>)}
+      </div>
       <div className="form-grid-2">
         <label>
           <span>发帖角色</span>
@@ -108,6 +122,7 @@ function GenerateForm({ data, onClose, onGenerate }) {
 export function FeedPage({ data, query, onOpenPost, onGenerate, onNavigate }) {
   const [category, setCategory] = useState('全部');
   const [generateOpen, setGenerateOpen] = useState(false);
+  const categories = useMemo(() => ['全部', ...new Set(data.posts.map((post) => post.category).filter(Boolean))], [data.posts]);
   const filtered = useMemo(() => data.posts.filter((post) => {
     const categoryMatch = category === '全部' || post.category === category;
     const haystack = `${post.title} ${post.excerpt} ${(post.tags || []).join(' ')}`.toLowerCase();
@@ -126,7 +141,7 @@ export function FeedPage({ data, query, onOpenPost, onGenerate, onNavigate }) {
         <section className="feed-main">
           <header className="page-heading feed-heading">
             <div>
-              <p className="eyebrow"><span className="live-dot" /> 社区正在更新</p>
+              <p className="eyebrow"><span className="live-dot" /> {data.currentKnowledgeBase?.name || '社区'} · 正在更新</p>
               <h1>社区动态</h1>
             </div>
             <button className="button button-primary" type="button" onClick={() => setGenerateOpen(true)} disabled={!data.stats.pending}>

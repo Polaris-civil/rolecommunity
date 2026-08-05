@@ -18,6 +18,34 @@ import { relativeTime } from '../utils.js';
 
 const activityIcons = { post: Sparkles, reply: MessageCircleReply, import: FileInput };
 
+function formatTokens(value) {
+  const number = Number(value || 0);
+  return number >= 10000 ? `${(number / 10000).toFixed(1)} 万` : number.toLocaleString('zh-CN');
+}
+
+function TokenUsagePanel({ usage = {} }) {
+  const total = Number(usage.totalTokens || 0);
+  const prompt = Number(usage.promptTokens || 0);
+  const completion = Number(usage.completionTokens || 0);
+  const promptPercent = total ? Math.round((prompt / total) * 100) : 0;
+  const latestModel = usage.lastModel || usage.models?.[0]?.model || '尚未调用模型';
+  return (
+    <section className="usage-panel">
+      <header>
+        <div><span className="usage-panel-icon"><Activity size={18} /></span><span><h2>Token 使用量</h2><p>当前设备累计的真实模型调用</p></span></div>
+        <span className="usage-model-label">{latestModel}</span>
+      </header>
+      <div className="usage-total"><strong>{formatTokens(total)}</strong><span>tokens</span><small>{usage.measuredRequests || 0} 次返回用量 · {usage.fallbackRequests || 0} 次本地回退</small></div>
+      <div className="usage-breakdown">
+        <div><span><i className="usage-dot input" />输入</span><strong>{formatTokens(prompt)}</strong></div>
+        <div><span><i className="usage-dot output" />输出</span><strong>{formatTokens(completion)}</strong></div>
+      </div>
+      <div className="usage-bar" aria-label={`输入占比 ${promptPercent}%`}><span style={{ width: `${promptPercent}%` }} /></div>
+      <footer><span>请求次数 {usage.requests || 0}</span><span>{usage.lastRequestAt ? `最近 ${relativeTime(usage.lastRequestAt)}` : '还没有模型请求'}</span></footer>
+    </section>
+  );
+}
+
 export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
   const [settings, setSettings] = useState(data.settings);
   const [saving, setSaving] = useState(false);
@@ -60,7 +88,7 @@ export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
   return (
     <>
       <header className="page-heading automation-heading">
-        <div><p className="eyebrow">社区引擎</p><h1>自动运营</h1></div>
+        <div><p className="eyebrow">{data.currentKnowledgeBase?.name || '当前社区'} · 社区引擎</p><h1>自动运营</h1></div>
         <button className="button button-primary" type="button" onClick={run} disabled={running || !data.stats.pending}>
           <Zap size={17} />{running ? '正在生成…' : '立即发帖'}
         </button>
@@ -75,6 +103,7 @@ export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
       </section>
 
       <div className="automation-grid">
+        <TokenUsagePanel usage={data.usage} />
         <section className="settings-panel">
           <header><span><CalendarClock size={19} /></span><div><h2>发帖计划</h2><p>自动选择待发布知识点和匹配角色</p></div></header>
           <div className="setting-row">

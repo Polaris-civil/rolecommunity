@@ -11,6 +11,8 @@ import {
 } from './humanGenerator.js';
 import { extractKnowledgeLocal, extractPdfText } from './localContent.js';
 import { chooseReplyRole, isQuestionComment } from './replyRouting.js';
+import { addKnowledgeBase, ensureKnowledgeBases } from './knowledgeBases.js';
+import { emptyUsage, recordFallbackUsage, recordTokenUsage, summarizeUsage } from './usage.js';
 import {
   buildKnowledgeAnswerSystemPrompt,
   buildKnowledgeAnswerUserPrompt,
@@ -66,23 +68,29 @@ function readStore() {
   const saved = storage()?.getItem(STORE_KEY);
   const legacySaved = saved ? null : storage()?.getItem(LEGACY_STORE_KEY);
   if (!saved && !legacySaved) {
-    const seeded = refreshLegacyPostTitles(ensureProfiles(seedWithBuiltinKnowledge()));
+    const seeded = refreshLegacyPostTitles(ensureProfiles(normalizeStore(seedWithBuiltinKnowledge())));
     storage()?.setItem(STORE_KEY, JSON.stringify(seeded));
     return seeded;
   }
   try {
     const parsed = JSON.parse(saved || legacySaved);
     if (Array.isArray(parsed.roles) && Array.isArray(parsed.knowledge) && Array.isArray(parsed.posts)) {
-      const next = refreshLegacyPostTitles(ensureProfiles(addStarterRoles(removeStaleDemoPosts(addBuiltinKnowledge(migrateLegacyDemoData(parsed))))));
+      const next = refreshLegacyPostTitles(ensureProfiles(normalizeStore(addStarterRoles(removeStaleDemoPosts(addBuiltinKnowledge(migrateLegacyDemoData(parsed)))))));
       storage()?.setItem(STORE_KEY, JSON.stringify(next));
       return next;
     }
   } catch {
     // Reset a corrupted local store below.
   }
-  const seeded = refreshLegacyPostTitles(ensureProfiles(seedWithBuiltinKnowledge()));
+  const seeded = refreshLegacyPostTitles(ensureProfiles(normalizeStore(seedWithBuiltinKnowledge())));
   storage()?.setItem(STORE_KEY, JSON.stringify(seeded));
   return seeded;
+}
+
+function normalizeStore(store) {
+  ensureKnowledgeBases(store);
+  if (!store.usage) store.usage = emptyUsage();
+  return store;
 }
 
 function addBuiltinKnowledge(store) {
@@ -160,7 +168,7 @@ function refreshLegacyPostTitles(store) {
 }
 
 function seedWithBuiltinKnowledge() {
-  return addStarterRoles(addBuiltinKnowledge(createSeedData()));
+  return normalizeStore(addStarterRoles(addBuiltinKnowledge(createSeedData())));
 }
 
 function writeStore(store) {
@@ -258,7 +266,7 @@ function parseJsonObject(value) {
 
 async function callModel(messages, { json = false, temperature = 0.86 } = {}) {
   const config = readLlmConfig();
-  if (!config.apiKey) return '';
+  if (!config.apiKey) return null;
   const body = {
     model: config.model,
     temperature,
@@ -292,13 +300,17 @@ async function callModel(messages, { json = false, temperature = 0.86 } = {}) {
   if (status < 200 || status >= 300) {
     throw new Error(`模型请求失败 (${status})`);
   }
-  return payload?.choices?.[0]?.message?.content || '';
+  return {
+    output: payload?.choices?.[0]?.message?.content || '',
+    usage: payload?.usage || {},
+    model: config.model,
+  };
 }
 
-async function generatePost(knowledge, role, type, recentTitles = []) {
+async function generatePost(knowledge, role, type, recentTitles = [], { onUsage, onFallback } = {}) {
   const variation = createVariationBrief({ recentTitles });
   try {
-    const output = await callModel([
+    const result = await callModel([
       {
         role: 'system',
         content: buildPostSystemPrompt({ role, variation }),
@@ -308,8 +320,9 @@ async function generatePost(knowledge, role, type, recentTitles = []) {
         content: buildPostUserPrompt({ knowledge, type, variation }),
       },
     ], { json: true, temperature: 0.92 });
-    if (output) {
-      const generated = parseJsonObject(output);
+    if (result) onUsage?.({ ...(result.usage || {}), model: result.model });
+    if (result?.output) {
+      const generated = parseJsonObject(result.output);
       return {
         ...generated,
         title: ensureCatchyTitle({ generated, knowledge, role, type, variationSeed: variation.seed }),
@@ -319,28 +332,31 @@ async function generatePost(knowledge, role, type, recentTitles = []) {
   } catch {
     // Fall back to the local generator so the community remains usable offline.
   }
+  onFallback?.();
   return { ...mockGeneratePost({ knowledge, role, type, variationSeed: variation.seed }), source: 'demo' };
 }
 
-async function generateReply(post, comment, role, recentReplies = [], knowledge) {
+async function generateReply(post, comment, role, recentReplies = [], knowledge, { onUsage, onFallback } = {}) {
   const variation = createVariationBrief({ kind: 'reply', recentReplies });
   const question = isQuestionComment(comment.content);
   try {
-    const output = await callModel([
+    const result = await callModel([
       { role: 'system', content: buildReplySystemPrompt({ role, variation, isQuestion: question }) },
       { role: 'user', content: buildReplyUserPrompt({ post, comment, knowledge, recentReplies: variation.recentReplies }) },
     ], { temperature: 0.9 });
-    if (output) return output.trim();
+    if (result) onUsage?.({ ...(result.usage || {}), model: result.model });
+    if (result?.output) return result.output.trim();
   } catch {
     // Keep the interaction available when the model is offline or unavailable.
   }
+  onFallback?.();
   return generateFallbackReply({ post, comment, role, knowledge, variationSeed: variation.seed });
 }
 
-async function generateKnowledgeAnswer(post, knowledge, role) {
+async function generateKnowledgeAnswer(post, knowledge, role, { onUsage, onFallback } = {}) {
   const variation = createVariationBrief({ kind: 'answer' });
   try {
-    const output = await callModel([
+    const result = await callModel([
       {
         role: 'system',
         content: buildKnowledgeAnswerSystemPrompt({ role, variation }),
@@ -350,26 +366,38 @@ async function generateKnowledgeAnswer(post, knowledge, role) {
         content: buildKnowledgeAnswerUserPrompt({ post, knowledge }),
       },
     ], { temperature: 0.84 });
-    if (output) return output.trim();
+    if (result) onUsage?.({ ...(result.usage || {}), model: result.model });
+    if (result?.output) return result.output.trim();
   } catch {
     // Keep the required Q&A available when the configured model is unavailable.
   }
+  onFallback?.();
   return generateFallbackKnowledgeAnswer({ post, knowledge, role });
 }
 
-async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion' } = {}) {
-  const available = store.knowledge.filter((item) => item.status === 'pending');
-  const knowledge = knowledgeId ? store.knowledge.find((item) => item.id === knowledgeId) : available[Math.floor(Math.random() * available.length)];
-  if (!knowledge || knowledge.status !== 'pending') throw new Error('没有可发布的知识点');
+async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion', category = '全部', knowledgeBaseId } = {}) {
+  ensureKnowledgeBases(store);
+  const activeKnowledgeBaseId = String(knowledgeBaseId || store.settings.activeKnowledgeBaseId || store.knowledgeBases[0]?.id || '');
+  const available = store.knowledge.filter((item) => item.status === 'pending'
+    && item.knowledgeBaseId === activeKnowledgeBaseId
+    && (category === '全部' || !category || item.category === category));
+  const knowledge = knowledgeId
+    ? store.knowledge.find((item) => item.id === knowledgeId && item.knowledgeBaseId === activeKnowledgeBaseId)
+    : available[Math.floor(Math.random() * available.length)];
+  if (!knowledge || knowledge.status !== 'pending') throw new Error(category && category !== '全部' ? '这个分类暂时没有待发布内容' : '这个知识库没有可发布的内容');
   const matchingRoles = store.roles.filter((role) => role.tags.some((tag) => knowledge.tags.includes(tag) || tag === knowledge.category));
   const role = roleId ? store.roles.find((item) => item.id === roleId) : (matchingRoles.length ? matchingRoles : store.roles)[Math.floor(Math.random() * (matchingRoles.length || store.roles.length))];
   if (!role) throw new Error('请先创建至少一个 AI 角色');
   const effectiveType = role.postMode || type;
-  const generated = await generatePost(knowledge, role, effectiveType, store.posts.slice(0, 12).map((post) => `${post.title}：${String(post.body || '').replace(/\s+/g, ' ').slice(0, 90)}`));
+  const generated = await generatePost(knowledge, role, effectiveType, store.posts.filter((post) => post.knowledgeBaseId === activeKnowledgeBaseId).slice(0, 12).map((post) => `${post.title}：${String(post.body || '').replace(/\s+/g, ' ').slice(0, 90)}`), {
+    onUsage: (usage) => recordTokenUsage(store, usage, 'post'),
+    onFallback: () => recordFallbackUsage(store),
+  });
   const createdAt = new Date().toISOString();
   const post = {
     id: makeId('post'),
     knowledgeId: knowledge.id,
+    knowledgeBaseId: knowledge.knowledgeBaseId,
     authorId: role.id,
     title: generated.title,
     excerpt: generated.excerpt,
@@ -403,27 +431,30 @@ async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion
       id: makeId('comment'),
       authorId: answerRole.id,
       authorProfile: randomProfile(),
-      content: await generateKnowledgeAnswer(post, knowledge, answerRole),
+      content: await generateKnowledgeAnswer(post, knowledge, answerRole, {
+        onUsage: (usage) => recordTokenUsage(store, usage, 'qa-answer'),
+        onFallback: () => recordFallbackUsage(store),
+      }),
       createdAt: answerCreatedAt,
       isAi: true,
       qaType: 'answer',
     });
-    store.activity.unshift({ id: makeId('activity'), type: 'reply', text: `${answerRole.nickname} 回答了求知帖`, createdAt: answerCreatedAt });
+    store.activity.unshift({ id: makeId('activity'), type: 'reply', text: `${answerRole.nickname} 回答了求知帖`, createdAt: answerCreatedAt, knowledgeBaseId: knowledge.knowledgeBaseId });
   }
   knowledge.status = 'published';
   knowledge.publishedAt = createdAt;
   store.posts.unshift(post);
   store.settings.lastGeneratedAt = createdAt;
-  store.activity.unshift({ id: makeId('activity'), type: 'post', text: `${role.nickname} 发布了“${post.title}”`, createdAt });
+  store.activity.unshift({ id: makeId('activity'), type: 'post', text: `${role.nickname} 发布了“${post.title}”`, createdAt, knowledgeBaseId: knowledge.knowledgeBaseId });
   store.activity = store.activity.slice(0, 30);
   return { post, role, generated };
 }
 
 async function runDueAutomation(store) {
-  if (!store.settings.autoPostEnabled || !store.knowledge.some((item) => item.status === 'pending')) return;
+  if (!store.settings.autoPostEnabled || !store.knowledge.some((item) => item.status === 'pending' && item.knowledgeBaseId === store.settings.activeKnowledgeBaseId)) return;
   const interval = (24 * 60 * 60 * 1000) / Math.max(1, Number(store.settings.postsPerDay));
   const elapsed = Date.now() - new Date(store.settings.lastGeneratedAt || 0).getTime();
-  if (elapsed >= interval) await publishKnowledge(store, { type: store.settings.defaultPostType });
+  if (elapsed >= interval) await publishKnowledge(store, { type: store.settings.defaultPostType, knowledgeBaseId: store.settings.activeKnowledgeBaseId });
 }
 
 function bootstrap(store) {
@@ -433,7 +464,9 @@ function bootstrap(store) {
     knowledge: store.knowledge,
     settings: store.settings,
     activity: store.activity,
+    knowledgeBases: store.knowledgeBases,
     stats: summarize(store),
+    usage: summarizeUsage(store),
     aiMode: readLlmConfig().apiKey ? 'llm' : 'demo',
     llm: publicLlmConfig(),
     runtime: 'mobile',
@@ -525,14 +558,17 @@ export const mobileApi = {
         id: makeId('comment'),
         authorId: responder.id,
         authorProfile: randomProfile(),
-        content: await generateReply(post, comment, responder, post.comments.filter((item) => item.isAi).map((item) => item.content), knowledge),
+        content: await generateReply(post, comment, responder, post.comments.filter((item) => item.isAi).map((item) => item.content), knowledge, {
+          onUsage: (usage) => recordTokenUsage(store, usage, 'reply'),
+          onFallback: () => recordFallbackUsage(store),
+        }),
         createdAt: new Date().toISOString(),
         isAi: true,
         replyType: question ? 'answer' : 'reply',
         replyToCommentId: comment.id,
       };
       post.comments.push(aiReply);
-      store.activity.unshift({ id: makeId('activity'), type: 'reply', text: `${responder.nickname} ${question ? '回答了' : '回复了'}社区访客`, createdAt: aiReply.createdAt });
+      store.activity.unshift({ id: makeId('activity'), type: 'reply', text: `${responder.nickname} ${question ? '回答了' : '回复了'}社区访客`, createdAt: aiReply.createdAt, knowledgeBaseId: post.knowledgeBaseId });
     }
     writeStore(store);
     return { comment, aiReply, author: responder || author, responder: responder || author, isQuestion: question, immediate: question };
@@ -554,18 +590,36 @@ export const mobileApi = {
     const entries = extractKnowledgeLocal(text, source);
     if (!entries.length) throw new Error('没有识别到足够完整的知识内容');
     const store = readStore();
+    ensureKnowledgeBases(store);
+    const requestedBaseId = String(formData.get('knowledgeBaseId') || store.settings.activeKnowledgeBaseId || '').trim();
+    const requestedBaseName = String(formData.get('knowledgeBaseName') || '').trim();
+    const base = requestedBaseId === 'new'
+      ? addKnowledgeBase(store, { name: requestedBaseName || source })
+      : store.knowledgeBases.find((item) => item.id === requestedBaseId) || addKnowledgeBase(store, { id: requestedBaseId || undefined, name: requestedBaseName || source });
+    entries.forEach((entry) => {
+      entry.knowledgeBaseId = base.id;
+      entry.knowledgeBaseName = base.name;
+    });
     store.knowledge.unshift(...entries);
-    store.activity.unshift({ id: makeId('activity'), type: 'import', text: `已从 ${source} 导入 ${entries.length} 条知识`, createdAt: new Date().toISOString() });
+    store.activity.unshift({ id: makeId('activity'), type: 'import', text: `已从 ${source} 导入 ${entries.length} 条知识`, createdAt: new Date().toISOString(), knowledgeBaseId: base.id });
     writeStore(store);
-    return { count: entries.length, entries };
+    return { count: entries.length, entries, knowledgeBase: base };
   },
   createKnowledge: async (body) => {
     const store = readStore();
     const entry = { id: makeId('know'), title: String(body?.title || '').trim(), content: String(body?.content || '').trim(), category: String(body?.category || '通识'), tags: Array.isArray(body?.tags) ? body.tags : [], group: String(body?.category || '通识'), section: String(body?.title || '未分类').trim() || '未分类', status: 'pending', source: '手动录入', createdAt: new Date().toISOString() };
     if (!entry.title || !entry.content) throw new Error('知识点标题和内容不能为空');
+    ensureKnowledgeBases(store);
+    const requestedBaseId = String(body?.knowledgeBaseId || store.settings.activeKnowledgeBaseId || '').trim();
+    const requestedBaseName = String(body?.knowledgeBaseName || '').trim();
+    const base = requestedBaseId === 'new'
+      ? addKnowledgeBase(store, { name: requestedBaseName || entry.source })
+      : store.knowledgeBases.find((item) => item.id === requestedBaseId) || addKnowledgeBase(store, { id: requestedBaseId || undefined, name: requestedBaseName || entry.source });
+    entry.knowledgeBaseId = base.id;
+    entry.knowledgeBaseName = base.name;
     store.knowledge.unshift(entry);
     writeStore(store);
-    return entry;
+    return { ...entry, knowledgeBase: base };
   },
   updateKnowledge: async (id, body) => {
     const store = readStore();
@@ -614,12 +668,20 @@ export const mobileApi = {
   updateSettings: async (body) => {
     const store = readStore();
     for (const key of ['autoPostEnabled', 'postsPerDay', 'replyProbability', 'replyDelaySeconds', 'defaultPostType']) if (body?.[key] !== undefined) store.settings[key] = body[key];
+    ensureKnowledgeBases(store);
+    if (body?.activeKnowledgeBaseId && store.knowledgeBases.some((base) => base.id === body.activeKnowledgeBaseId)) {
+      store.settings.activeKnowledgeBaseId = body.activeKnowledgeBaseId;
+    }
     writeStore(store);
     return store.settings;
   },
   runAutomation: async (body = {}) => {
     const store = readStore();
-    const result = await publishKnowledge(store, { type: body.type || store.settings.defaultPostType });
+    const result = await publishKnowledge(store, {
+      type: body.type || store.settings.defaultPostType,
+      category: body.category || '全部',
+      knowledgeBaseId: body.knowledgeBaseId || store.settings.activeKnowledgeBaseId,
+    });
     writeStore(store);
     return { ...result, post: { ...result.post, author: withProfile(result.role, result.post.authorProfile) } };
   },

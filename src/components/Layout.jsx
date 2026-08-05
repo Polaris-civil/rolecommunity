@@ -49,6 +49,21 @@ function ProfileMenu({ data, likedCount, updateInfo, className, onNavigate, onOp
   );
 }
 
+function KnowledgeBaseMenu({ knowledgeBases = [], activeId, onSelect }) {
+  return (
+    <div className="knowledge-base-menu" role="menu" aria-label="切换知识库">
+      <div className="knowledge-base-menu-heading"><span>当前社区</span><small>{knowledgeBases.length} 个知识库</small></div>
+      {knowledgeBases.map((base) => (
+        <button className={base.id === activeId ? 'active' : ''} type="button" role="menuitem" key={base.id} onClick={() => onSelect(base.id)}>
+          <span className="knowledge-base-dot" style={{ background: base.color || '#4777c6' }} />
+          <span><strong>{base.name}</strong><small>{base.description || '独立知识社区'}</small></span>
+          <small>{base.id === activeId ? '当前' : ''}</small>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function NotificationPanel({ data, onNavigate, onClose }) {
   const activity = (data?.activity || []).slice(0, 4);
   return (
@@ -65,28 +80,32 @@ function NotificationPanel({ data, onNavigate, onClose }) {
   );
 }
 
-export function Layout({ view, setView, query, setQuery, data, likedCount = 0, updateInfo, onOpenModelSettings, onOpenUpdates, children }) {
+export function Layout({ view, setView, query, setQuery, data, knowledgeBases = [], activeKnowledgeBaseId, onSwitchKnowledgeBase, likedCount = 0, updateInfo, onOpenModelSettings, onOpenUpdates, children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileAnchor, setProfileAnchor] = useState(null);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [knowledgeBaseOpen, setKnowledgeBaseOpen] = useState(false);
   const navigate = (id) => {
     setView(id);
     setMobileOpen(false);
     setProfileAnchor(null);
     setNotificationOpen(false);
+    setKnowledgeBaseOpen(false);
   };
 
   useEffect(() => {
-    if (!profileAnchor && !notificationOpen) return undefined;
+    if (!profileAnchor && !notificationOpen && !knowledgeBaseOpen) return undefined;
     const closeOnOutsideClick = (event) => {
-      if (event.target.closest('.profile-trigger, .profile-popover, .notification-trigger, .notification-panel')) return;
+      if (event.target.closest('.profile-trigger, .profile-popover, .notification-trigger, .notification-panel, .community-switcher, .knowledge-base-menu')) return;
       setProfileAnchor(null);
       setNotificationOpen(false);
+      setKnowledgeBaseOpen(false);
     };
     const closeOnEscape = (event) => {
       if (event.key === 'Escape') {
         setProfileAnchor(null);
         setNotificationOpen(false);
+        setKnowledgeBaseOpen(false);
       }
     };
     document.addEventListener('pointerdown', closeOnOutsideClick);
@@ -95,15 +114,17 @@ export function Layout({ view, setView, query, setQuery, data, likedCount = 0, u
       document.removeEventListener('pointerdown', closeOnOutsideClick);
       document.removeEventListener('keydown', closeOnEscape);
     };
-  }, [notificationOpen, profileAnchor]);
+  }, [knowledgeBaseOpen, notificationOpen, profileAnchor]);
 
   const toggleProfile = (anchor) => {
     setNotificationOpen(false);
+    setKnowledgeBaseOpen(false);
     setProfileAnchor((current) => (current === anchor ? null : anchor));
   };
 
   const toggleNotifications = () => {
     setProfileAnchor(null);
+    setKnowledgeBaseOpen(false);
     setNotificationOpen((current) => !current);
   };
 
@@ -141,15 +162,16 @@ export function Layout({ view, setView, query, setQuery, data, likedCount = 0, u
 
         <div className="sidebar-community">
           <p className="nav-label">当前社区</p>
-          <button className="community-switcher" type="button" onClick={() => navigate('feed')}>
+          <button className="community-switcher" type="button" aria-expanded={knowledgeBaseOpen} onClick={() => { setProfileAnchor(null); setNotificationOpen(false); setKnowledgeBaseOpen((current) => !current); }}>
             <span className="community-icon"><Brain size={18} /></span>
             <span>
-              <strong>面试修炼场</strong>
+              <strong>{data?.currentKnowledgeBase?.name || '当前知识库'}</strong>
               <small>{data?.stats?.posts || 0} 篇帖子 · {data?.roles?.length || 0} 位角色</small>
             </span>
-            <ChevronDown size={16} />
+            <ChevronDown className={knowledgeBaseOpen ? 'chevron-open' : ''} size={16} />
           </button>
-          <p className="community-description">把面试知识变成每天刷得下去的讨论。</p>
+          {knowledgeBaseOpen && <KnowledgeBaseMenu knowledgeBases={knowledgeBases} activeId={activeKnowledgeBaseId} onSelect={(id) => { setKnowledgeBaseOpen(false); setMobileOpen(false); onSwitchKnowledgeBase?.(id); }} />}
+          <p className="community-description">{data?.currentKnowledgeBase?.description || '把知识变成每天刷得下去的讨论。'}</p>
           <div className="community-links">
             <button className={`community-link ${view === 'feed' ? 'active' : ''}`} type="button" onClick={() => navigate('feed')}>
               <Home size={16} /><span>帖子广场</span>

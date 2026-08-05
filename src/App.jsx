@@ -14,6 +14,7 @@ import { RolesPage } from './pages/RolesPage.jsx';
 import { APP_VERSION, checkForUpdate, downloadAndInstallUpdate, readUpdateSettings, saveUpdateSettings } from './updateService.js';
 
 const LIKED_POSTS_KEY = 'rolecommunity.liked-posts.v1';
+const KNOWLEDGE_BASE_KEY = 'rolecommunity.active-knowledge-base.v1';
 
 function readLikedPostIds() {
   try {
@@ -33,12 +34,56 @@ function writeLikedPostIds(ids) {
   }
 }
 
+function readActiveKnowledgeBaseId() {
+  try {
+    return String(globalThis.localStorage?.getItem(KNOWLEDGE_BASE_KEY) || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function writeActiveKnowledgeBaseId(id) {
+  try {
+    globalThis.localStorage?.setItem(KNOWLEDGE_BASE_KEY, id);
+  } catch {
+    // The selected workspace remains available for the current session.
+  }
+}
+
+function scopedData(data, activeId) {
+  const knowledgeBases = data.knowledgeBases || [];
+  const currentKnowledgeBase = knowledgeBases.find((base) => base.id === activeId) || knowledgeBases[0];
+  if (!currentKnowledgeBase) return { ...data, knowledgeBases: [], currentKnowledgeBase: null };
+  const knowledge = data.knowledge.filter((entry) => entry.knowledgeBaseId === currentKnowledgeBase.id);
+  const knowledgeIds = new Set(knowledge.map((entry) => entry.id));
+  const posts = data.posts.filter((post) => post.knowledgeBaseId === currentKnowledgeBase.id || knowledgeIds.has(post.knowledgeId));
+  const comments = posts.reduce((total, post) => total + (post.comments || []).length, 0);
+  const views = posts.reduce((total, post) => total + (post.views || 0), 0);
+  return {
+    ...data,
+    knowledge,
+    posts,
+    activity: (data.activity || []).filter((item) => !item.knowledgeBaseId || item.knowledgeBaseId === currentKnowledgeBase.id),
+    currentKnowledgeBase,
+    activeKnowledgeBaseId: currentKnowledgeBase.id,
+    stats: {
+      ...data.stats,
+      posts: posts.length,
+      knowledge: knowledge.length,
+      pending: knowledge.filter((entry) => entry.status === 'pending').length,
+      comments,
+      views,
+    },
+  };
+}
+
 export default function App() {
   const [data, setData] = useState(null);
   const [view, setViewState] = useState('feed');
   const [query, setQuery] = useState('');
   const [selectedPost, setSelectedPost] = useState(null);
   const [likedPostIds, setLikedPostIds] = useState(readLikedPostIds);
+  const [activeKnowledgeBaseId, setActiveKnowledgeBaseId] = useState(readActiveKnowledgeBaseId);
   const [error, setError] = useState('');
   const [toast, setToast] = useState(null);
   const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
@@ -57,6 +102,16 @@ export default function App() {
   useEffect(() => {
     refresh().catch((loadError) => setError(loadError.message));
   }, [refresh]);
+
+  useEffect(() => {
+    if (!data?.knowledgeBases?.length) return;
+    const preferred = activeKnowledgeBaseId || data.settings?.activeKnowledgeBaseId;
+    const next = data.knowledgeBases.some((base) => base.id === preferred)
+      ? preferred
+      : data.knowledgeBases[0].id;
+    if (next !== activeKnowledgeBaseId) setActiveKnowledgeBaseId(next);
+    writeActiveKnowledgeBaseId(next);
+  }, [activeKnowledgeBaseId, data]);
 
   const checkUpdate = useCallback(async (manifestUrl) => {
     setUpdateChecking(true);
@@ -197,6 +252,22 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const switchKnowledgeBase = async (nextId) => {
+    const next = String(nextId || '').trim();
+    if (!next || next === activeKnowledgeBaseId || !data?.knowledgeBases?.some((base) => base.id === next)) return;
+    setActiveKnowledgeBaseId(next);
+    writeActiveKnowledgeBaseId(next);
+    setSelectedPost(null);
+    setViewState('feed');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      await api.updateSettings({ activeKnowledgeBaseId: next });
+      await refresh();
+    } catch (actionError) {
+      notify(actionError.message, 'error');
+    }
+  };
+
   const openPost = async (id) => {
     await run(async () => {
       const post = await api.post(id);
@@ -206,7 +277,7 @@ export default function App() {
   };
 
   const generatePost = async (values) => run(async () => {
-    const result = await api.generate(values);
+    const result = await api.generate({ ...values, knowledgeBaseId: values.knowledgeBaseId || activeKnowledgeBaseId });
     await refresh();
     setSelectedPost(result.post);
     setViewState('feed');
@@ -252,12 +323,14 @@ export default function App() {
     return <main className="loading-state"><span className="brand-mark"><LoaderCircle className="spinner" size={21} /></span><strong>正在载入社区</strong></main>;
   }
 
+  const workspaceData = scopedData(data, activeKnowledgeBaseId);
+
   let page;
   if (selectedPost) {
     page = (
       <PostDetail
         post={selectedPost}
-        roles={data.roles}
+        roles={workspaceData.roles}
         isLiked={likedPostIds.includes(selectedPost.id)}
         onBack={() => setSelectedPost(null)}
         onLike={(id, active) => run(() => toggleLikedPost(id, active))}
@@ -273,7 +346,7 @@ export default function App() {
   } else if (view === 'liked') {
     page = (
       <LikedPage
-        data={data}
+        data={workspaceData}
         likedPostIds={likedPostIds}
         onOpenPost={openPost}
         onRemoveLike={(id, active) => run(() => toggleLikedPost(id, active), '已从我的喜欢移除')}
@@ -283,20 +356,23 @@ export default function App() {
   } else if (view === 'knowledge') {
     page = (
       <KnowledgePage
-        data={data}
+        data={workspaceData}
         query={query}
         onImport={(form) => run(async () => {
           const result = await api.importKnowledge(form);
           await refresh();
+          if (result.knowledgeBase?.id && result.knowledgeBase.id !== activeKnowledgeBaseId) await switchKnowledgeBase(result.knowledgeBase.id);
           notify(`已导入 ${result.count} 条知识`);
         })}
-        onCreate={(values) => run(async () => { await api.createKnowledge(values); await refresh(); }, '知识条目已创建')}
+        onCreate={(values) => run(async () => { await api.createKnowledge({ ...values, knowledgeBaseId: activeKnowledgeBaseId }); await refresh(); }, '知识条目已创建')}
         onUpdate={(id, values) => run(async () => { await api.updateKnowledge(id, values); await refresh(); }, '知识条目已更新')}
         onDelete={(entry) => {
           if (!window.confirm(`确定删除“${entry.title}”吗？`)) return;
           run(async () => { await api.deleteKnowledge(entry.id); await refresh(); }, '知识条目已删除');
         }}
         onGenerate={generatePost}
+        knowledgeBases={data.knowledgeBases}
+        activeKnowledgeBaseId={activeKnowledgeBaseId}
       />
     );
   } else if (view === 'roles') {
@@ -314,11 +390,11 @@ export default function App() {
   } else if (view === 'automation') {
     page = (
       <AutomationPage
-        data={data}
+        data={workspaceData}
         onUpdateSettings={(changes) => run(async () => { await api.updateSettings(changes); await refresh(); })}
         onRefresh={() => run(refresh, '活动已刷新')}
         onRun={() => run(async () => {
-          const result = await api.runAutomation({});
+          const result = await api.runAutomation({ knowledgeBaseId: activeKnowledgeBaseId });
           await refresh();
           setSelectedPost(result.post);
           setViewState('feed');
@@ -326,12 +402,12 @@ export default function App() {
       />
     );
   } else {
-    page = <FeedPage data={data} query={query} onOpenPost={openPost} onGenerate={generatePost} onNavigate={setView} />;
+    page = <FeedPage data={workspaceData} query={query} onOpenPost={openPost} onGenerate={generatePost} onNavigate={setView} />;
   }
 
   return (
     <>
-      <Layout view={view} setView={setView} query={query} setQuery={setQuery} data={data} likedCount={likedPostIds.length} updateInfo={updateInfo} onOpenModelSettings={() => setModelSettingsOpen(true)} onOpenUpdates={() => setUpdateSettingsOpen(true)}>{page}</Layout>
+      <Layout view={view} setView={setView} query={query} setQuery={setQuery} data={workspaceData} knowledgeBases={data.knowledgeBases} activeKnowledgeBaseId={activeKnowledgeBaseId} onSwitchKnowledgeBase={switchKnowledgeBase} likedCount={likedPostIds.filter((id) => workspaceData.posts.some((post) => post.id === id)).length} updateInfo={updateInfo} onOpenModelSettings={() => setModelSettingsOpen(true)} onOpenUpdates={() => setUpdateSettingsOpen(true)}>{page}</Layout>
       {modelSettingsOpen && (
         <ModelSettingsModal
           config={data.llm}

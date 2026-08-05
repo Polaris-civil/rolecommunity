@@ -55,9 +55,11 @@ function KnowledgeForm({ entry, onSubmit, onClose }) {
   );
 }
 
-function ImportForm({ onImport, onClose }) {
+function ImportForm({ onImport, onClose, knowledgeBases = [], activeKnowledgeBaseId }) {
   const [content, setContent] = useState('');
   const [sourceName, setSourceName] = useState('手动粘贴.md');
+  const [knowledgeBaseId, setKnowledgeBaseId] = useState(activeKnowledgeBaseId || knowledgeBases[0]?.id || '');
+  const [knowledgeBaseName, setKnowledgeBaseName] = useState('');
   const [working, setWorking] = useState(false);
   const submit = async (event) => {
     event.preventDefault();
@@ -65,6 +67,8 @@ function ImportForm({ onImport, onClose }) {
     const form = new FormData();
     form.append('content', content);
     form.append('sourceName', sourceName);
+    form.append('knowledgeBaseId', knowledgeBaseId);
+    if (knowledgeBaseId === 'new') form.append('knowledgeBaseName', knowledgeBaseName);
     try {
       await onImport(form);
       onClose();
@@ -75,6 +79,11 @@ function ImportForm({ onImport, onClose }) {
   return (
     <form className="stack-form" onSubmit={submit}>
       <label><span>资料名称</span><input value={sourceName} onChange={(event) => setSourceName(event.target.value)} required /></label>
+      <label><span>归属知识库</span><select value={knowledgeBaseId} onChange={(event) => setKnowledgeBaseId(event.target.value)} required>
+        {knowledgeBases.map((base) => <option key={base.id} value={base.id}>{base.name}</option>)}
+        <option value="new">＋新建一个独立知识库</option>
+      </select></label>
+      {knowledgeBaseId === 'new' && <label><span>新知识库名称</span><input value={knowledgeBaseName} onChange={(event) => setKnowledgeBaseName(event.target.value)} placeholder="例如：生成式视觉实验室" required /></label>}
       <label><span>Markdown / 纯文本</span><textarea className="import-textarea" value={content} onChange={(event) => setContent(event.target.value)} placeholder={'# HTTP 缓存\n\nCache-Control 用于控制…'} required /></label>
       <footer className="form-actions">
         <button className="button button-ghost" type="button" onClick={onClose}>取消</button>
@@ -95,7 +104,7 @@ function EntryActions({ entry, generatingId, onView, onEdit, onDelete, onGenerat
   );
 }
 
-export function KnowledgePage({ data, query, onImport, onCreate, onUpdate, onDelete, onGenerate }) {
+export function KnowledgePage({ data, query, onImport, onCreate, onUpdate, onDelete, onGenerate, knowledgeBases = [], activeKnowledgeBaseId }) {
   const fileRef = useRef(null);
   const [status, setStatus] = useState('all');
   const [part, setPart] = useState('all');
@@ -142,6 +151,7 @@ export function KnowledgePage({ data, query, onImport, onCreate, onUpdate, onDel
     setUploading(true);
     const form = new FormData();
     form.append('file', file);
+    form.append('knowledgeBaseId', activeKnowledgeBaseId || '');
     try {
       await onImport(form);
     } finally {
@@ -162,7 +172,7 @@ export function KnowledgePage({ data, query, onImport, onCreate, onUpdate, onDel
   return (
     <>
       <header className="page-heading knowledge-heading">
-        <div><p className="eyebrow">内容资产 · {sources.length} 个资料源</p><h1>知识资料库</h1><p className="page-subtitle">按资料源、章节和状态组织可发布知识</p></div>
+        <div><p className="eyebrow">{data.currentKnowledgeBase?.name || '当前社区'} · 内容资产 · {sources.length} 个资料源</p><h1>知识资料库</h1><p className="page-subtitle">按资料源、章节和状态组织可发布知识</p></div>
         <div className="heading-actions">
           <button className="button button-ghost" type="button" onClick={() => setPasting(true)}><FilePlus2 size={17} />粘贴资料</button>
           <button className="button button-primary" type="button" onClick={() => setCreating(true)}><Plus size={17} />新建条目</button>
@@ -257,7 +267,7 @@ export function KnowledgePage({ data, query, onImport, onCreate, onUpdate, onDel
 
       {creating && <Modal title="新建知识条目" onClose={() => setCreating(false)}><KnowledgeForm onSubmit={onCreate} onClose={() => setCreating(false)} /></Modal>}
       {editing && <Modal title="编辑知识条目" onClose={() => setEditing(null)}><KnowledgeForm entry={editing} onSubmit={(values) => onUpdate(editing.id, values)} onClose={() => setEditing(null)} /></Modal>}
-      {pasting && <Modal title="粘贴资料" wide onClose={() => setPasting(false)}><ImportForm onImport={onImport} onClose={() => setPasting(false)} /></Modal>}
+      {pasting && <Modal title="导入资料" wide onClose={() => setPasting(false)}><ImportForm knowledgeBases={knowledgeBases} activeKnowledgeBaseId={activeKnowledgeBaseId} onImport={onImport} onClose={() => setPasting(false)} /></Modal>}
       {viewing && <Modal title={viewing.title} wide onClose={() => setViewing(null)}><article className="knowledge-full-view"><div className="knowledge-full-meta"><span className="table-category">{viewing.category}</span><span>{viewing.part || '资料'}</span><span>{viewing.group || '未分类'}</span><span>{viewing.section || '综合'}</span><span>{viewing.source}</span><span>{viewing.status === 'pending' ? '待发布' : '已发布'}</span></div><MarkdownContent>{viewing.content}</MarkdownContent>{viewing.tags?.length > 0 && <div className="article-tags">{viewing.tags.map((tag) => <span className="tag" key={tag}>#{tag}</span>)}</div>}</article></Modal>}
     </>
   );
