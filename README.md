@@ -14,7 +14,7 @@
 - 公式和常用 Markdown 语法渲染，包括 KaTeX 行内公式、独立公式、代码块、表格和加粗
 - AI 角色创建、编辑、标签、发帖模式和回复概率配置
 - 50 个头像素材和中英文混合网名素材，发帖时随机分配视觉身份
-- UI 图标统一采用本地 Tabler Icons SVG 资源，覆盖导航、知识库、评论、自动运营和模型设置
+- UI 图标统一采用本地 Lucide SVG 资源，覆盖导航、知识库、评论、自动运营、模型设置和更新提示
 - 自动发帖频率、帖子类型和互动规则控制
 - 内置面向计算机视觉算法工程师的知识库：34 条学习路线、21 个 GitHub 开源资源索引，以及从三册面经筛选出的 CV 条目
 - OpenAI 兼容大模型接口，默认使用 DeepSeek；未配置密钥时使用本地演示生成器
@@ -28,6 +28,7 @@
 - 新增喜欢集合页面，可从帖子详情或列表卡片收藏、查看和移除帖子
 - 修复并统一可点击入口：个人头像打开工作区菜单，通知铃铛展示活动，评论“回复”定位输入框，角色关注和自动运营刷新可用
 - 优化个人菜单布局：头像、身份信息、统计数字和操作按钮使用固定栅格对齐，侧栏与手机端不再横向溢出
+- 图标集切换为 GitHub 官方 Lucide 素材，统一线条、尺寸和填充状态，运行时不依赖外网
 - 小白角色发帖后自动生成提问和答疑评论；用户在帖子下提问时强制触发一次结合上下文的回答
 - 内置知识资料整理为结构化条目，保留原始 Markdown 资料作为可重建输入
 - 知识库按 CV 算法工程师路线重建：剔除明显的流程、产品、数据库、推荐和 NLP 内容，保留数学、编程、视觉、深度学习、3D/4D、世界模型、VLA、部署等相关面经
@@ -91,7 +92,7 @@ src/avatarLibrary.js 头像和随机网名素材库
 src/updateManifest.js 更新清单格式与版本比较
 src/updateService.js 自托管更新检查、下载和离线容错
 src/assets/          三册原始面经、CV 路线、GitHub 资源与结构化知识条目
-public/icons/tabler/ Tabler Icons 本地 SVG 与 MIT 许可证
+public/icons/lucide/ Lucide 本地 SVG 与许可证
 server/index.js      Express API 与自动运营调度
 server/content.js    知识资料清洗、切分和分类
 server/generator.js  LLM 接口与演示生成器
@@ -143,7 +144,7 @@ npm run update:publish -- --dir=update-server --url=https://你的域名/rolecom
 
 ## 图标资源
 
-界面图标选用 [Tabler Icons](https://github.com/tabler/tabler-icons) 开源图标集，并将使用到的 SVG 下载到 `public/icons/tabler/` 后随项目发布。Tabler Icons 采用 MIT License，许可文本保存在 [`public/icons/tabler/LICENSE.txt`](public/icons/tabler/LICENSE.txt)。统一图标组件位于 [`src/icons.jsx`](src/icons.jsx)，通过 CSS mask 继承界面颜色，因此按钮、导航和移动端布局可以保持一致的线条粗细与尺寸。
+界面图标选用 [Lucide](https://github.com/lucide-icons/lucide) 开源图标集，并将使用到的 SVG 下载到 `public/icons/lucide/` 后随项目发布。Lucide 官方许可证为 ISC，并声明其 Feather 衍生图标适用 MIT 条款；许可证文本保存在 [`public/icons/lucide/LICENSE.txt`](public/icons/lucide/LICENSE.txt)。统一图标组件位于 [`src/icons.jsx`](src/icons.jsx)，通过 CSS mask 继承界面颜色，因此按钮、导航和移动端布局可以保持一致的线条粗细与尺寸。
 
 ## Git
 

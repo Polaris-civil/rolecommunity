@@ -1,74 +1,74 @@
 const iconFiles = {
   Activity: 'activity',
-  AlertCircle: 'alert-circle',
+  AlertCircle: 'circle-alert',
   ArrowLeft: 'arrow-left',
   ArrowUpRight: 'arrow-up-right',
   Bell: 'bell',
-  BookOpen: 'book-2',
-  BookOpenCheck: 'book-2',
-  Bot: 'robot',
+  BookOpen: 'book-open',
+  BookOpenCheck: 'book-open-check',
+  Bot: 'bot',
   Brain: 'brain',
-  CalendarClock: 'calendar-time',
+  CalendarClock: 'calendar-clock',
   Check: 'check',
   CheckCircle2: 'circle-check',
   ChevronDown: 'chevron-down',
-  CircleUserRound: 'user-circle',
-  Clock3: 'clock',
+  CircleUserRound: 'circle-user-round',
+  Clock3: 'clock-3',
   CloudUpload: 'cloud-upload',
   Code2: 'code',
-  DeviceFloppy: 'device-floppy',
-  Download: 'file-import',
-  Edit: 'edit',
-  ExternalLink: 'arrow-up-right',
+  DeviceFloppy: 'save',
+  Download: 'download',
+  Edit: 'pen-line',
+  ExternalLink: 'external-link',
   Eye: 'eye',
   EyeOff: 'eye-off',
-  FileInput: 'file-import',
+  FileInput: 'file-input',
   FilePlus2: 'file-plus',
   FileText: 'file-text',
   FolderOpen: 'folder-open',
   Heart: 'heart',
-  Home: 'home',
-  KeyRound: 'key',
-  Layers3: 'layers-subtract',
-  LoaderCircle: 'loader-2',
-  Menu: 'menu-2',
+  Home: 'house',
+  KeyRound: 'key-round',
+  Layers3: 'layers',
+  LoaderCircle: 'loader-circle',
+  Menu: 'menu',
   MessageCircle: 'message-circle',
-  MessageCircleReply: 'message-reply',
+  MessageCircleReply: 'message-circle-reply',
   Minus: 'minus',
-  MoreHorizontal: 'dots',
-  Pause: 'player-pause',
-  PenLine: 'edit',
+  MoreHorizontal: 'ellipsis',
+  Pause: 'pause',
+  PenLine: 'pen-line',
   Pencil: 'pencil',
-  Play: 'player-play',
+  Play: 'play',
   Plus: 'plus',
-  RefreshCw: 'refresh',
-  RotateCcw: 'rotate',
-  Save: 'device-floppy',
+  RefreshCw: 'refresh-cw',
+  RotateCcw: 'rotate-ccw',
+  Save: 'save',
   Search: 'search',
   Send: 'send',
-  Settings2: 'settings',
-  Share2: 'share-3',
+  Settings2: 'settings-2',
+  Share2: 'share-2',
   ShieldCheck: 'shield-check',
   Sparkles: 'sparkles',
   Tag: 'tag',
-  Trash2: 'trash',
+  Trash2: 'trash-2',
   TrendingUp: 'trending-up',
   UploadCloud: 'upload',
   Users: 'users',
-  WifiOff: 'alert-circle',
+  WifiOff: 'wifi-off',
   X: 'x',
-  Zap: 'bolt',
+  Zap: 'zap',
 };
 
 const filledFiles = new Set(['Heart']);
 
-export function TablerIcon({ name, size = 24, fill = 'none', className = '', style, strokeWidth: _strokeWidth, absoluteStrokeWidth: _absoluteStrokeWidth, ...rest }) {
+export function AppIcon({ name, size = 24, fill = 'none', className = '', style, strokeWidth: _strokeWidth, absoluteStrokeWidth: _absoluteStrokeWidth, ...rest }) {
   const file = iconFiles[name] || 'sparkles';
   const variant = fill && fill !== 'none' && filledFiles.has(name) ? 'filled' : 'outline';
-  const url = `/icons/tabler/${variant}/${file}.svg`;
+  const url = `/icons/lucide/${variant}/${file}.svg`;
   return (
     <span
-      className={`tabler-icon ${className}`.trim()}
+      className={`app-icon ${className}`.trim()}
       style={{ ...style, '--icon-size': `${size}px`, '--icon-mask': `url("${url}")` }}
       aria-hidden={rest['aria-label'] ? undefined : true}
       {...rest}
@@ -77,7 +77,7 @@ export function TablerIcon({ name, size = 24, fill = 'none', className = '', sty
 }
 
 function createIcon(name) {
-  const Icon = (props) => <TablerIcon name={name} {...props} />;
+  const Icon = (props) => <AppIcon name={name} {...props} />;
   Icon.displayName = name;
   return Icon;
 }
