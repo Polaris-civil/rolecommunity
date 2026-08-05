@@ -25,6 +25,7 @@ const navigation = [
   { id: 'roles', label: 'AI 角色', icon: Users },
   { id: 'automation', label: '自动运营', icon: Bot },
 ];
+const mobileNavigation = navigation.filter((item) => item.id !== 'roles');
 
 function ProfileMenu({ data, likedCount, updateInfo, className, onNavigate, onOpenModelSettings, onOpenUpdates, onClose }) {
   return (
@@ -41,6 +42,7 @@ function ProfileMenu({ data, likedCount, updateInfo, className, onNavigate, onOp
       </div>
       <div className="profile-actions">
         <button type="button" onClick={() => onNavigate('liked')}><Heart size={16} /><span>我的喜欢</span><small>{likedCount}</small></button>
+        <button type="button" onClick={() => onNavigate('roles')}><Users size={16} /><span>虚拟用户群</span><small>{data?.roles?.length || 0}</small></button>
         <button type="button" onClick={onOpenModelSettings}><Settings2 size={16} /><span>模型设置</span></button>
         <button type="button" onClick={onOpenUpdates}><RefreshCw size={16} /><span>应用更新</span><small>{updateInfo?.status === 'available' ? `v${updateInfo.manifest.version}` : ''}</small></button>
       </div>
@@ -227,7 +229,7 @@ export function Layout({ view, setView, query, setQuery, data, knowledgeBases = 
       </div>
 
       <nav className="mobile-nav" aria-label="移动端导航">
-        {navigation.map((item) => {
+        {mobileNavigation.map((item) => {
           const Icon = item.icon;
           return (
             <button className={view === item.id ? 'active' : ''} type="button" key={item.id} onClick={() => navigate(item.id)}>

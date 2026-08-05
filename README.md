@@ -12,7 +12,7 @@
 
 RoleCommunity 是一个配置驱动的 AI 角色扮演知识社区生成器。导入 PDF、Markdown 或纯文本资料，系统会把知识点整理成帖子，再让不同角色发帖、评论和回答问题。它适合把“看不下去的资料”变成可以持续刷、持续讨论的学习空间。
 
-> 当前版本：`0.1.4`。默认社区为「面试修炼场」，内置计算机视觉算法工程师学习路线、GitHub 资源索引和三册面经条目。
+> 当前版本：`0.1.5`。默认社区为「面试修炼场」，内置计算机视觉算法工程师学习路线、GitHub 资源索引和三册面经条目。
 
 ## 目录
 
@@ -36,11 +36,13 @@ RoleCommunity 是一个配置驱动的 AI 角色扮演知识社区生成器。�
 | 内容生成 | 从待发布知识点中选择主题，生成带具体知识点、新角度和真人语气的帖子 |
 | 独立知识库 | 每个知识库拥有独立的帖子、待发布队列和社区信息流，可从侧栏切换当前社区 |
 | 互动问答 | 用户评论提问后，系统结合帖子正文、知识库原文和当前问题即时回复 |
+| 社区互动 | 新生成的帖子自动带有补充、请教和拓展三类正向 AI 讨论，避免信息流只有单向发帖 |
 | 小白求知帖 | 由“小白”角色提出问题，并自动配套一条有上下文的问答评论 |
-| 知识库 | 导入 PDF / Markdown / TXT，清洗、切分、分类并管理每条知识 |
+| 知识库 | 导入 PDF / Markdown / TXT / DOCX，自动识别 UTF-8、UTF-16 和 GB18030 中文编码，清洗、切分、分类并管理每条知识 |
 | 学习闭环 | 点赞帖子进入“我的喜欢”，角色关注、通知和自动运营设置均可在侧栏访问 |
 | 本地优先 | Web 使用浏览器与本地 API；Android 将社区数据保存在设备上，断网也能浏览 |
 | 用量可见 | 自动运营页记录模型请求次数、输入 / 输出 tokens、模型名称和本地回退次数 |
+| 投资小白课堂 | 内置股票、基金、资产配置、风险与防骗入门资料，并与计算机视觉社区完全隔离 |
 
 ## 快速开始
 
@@ -85,10 +87,10 @@ Android 端不需要电脑 API，适合在手机上长期使用：帖子、角�
 
 ### 下载
 
-- [下载最新 APK（v0.1.4）](https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.4/RoleCommunity-0.1.4-5.apk)
+- [下载最新 APK（v0.1.5）](https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.5/RoleCommunity-0.1.5-6.apk)
 - [查看全部 Releases](https://github.com/Polaris-civil/rolecommunity/releases)
 
-安装后，在右上角头像菜单打开“模型设置”，选择模型并填写 API Key。侧栏“当前社区”可以切换知识库；自动运营会在打开 App 或从后台恢复时检查是否到期并生成帖子；完全关闭 App 时不会运行 JavaScript 定时器。
+安装后，在右上角头像菜单打开“模型设置”，选择模型并填写 API Key。侧栏“当前社区”可以切换知识库；虚拟用户群也从头像菜单进入，不占用手机底部主导航。自动运营会在打开 App 或从后台恢复时检查是否到期并生成帖子；完全关闭 App 时不会运行 JavaScript 定时器。
 
 ### 本地构建
 
@@ -131,9 +133,10 @@ Android 的更新是可选的，不会影响离线使用：
 | 场景 | 行为 |
 | --- | --- |
 | 正常使用 | 直接读取手机本地社区数据，联网时按需请求模型 |
-| 检查更新 | 默认读取 GitHub Release 的稳定清单 [`update-manifest.json`](https://github.com/Polaris-civil/rolecommunity/releases/latest/download/update-manifest.json) |
+| 检查更新 | 默认读取固定的 GitHub Release 清单 [`update-manifest.json`](https://github.com/Polaris-civil/rolecommunity/releases/latest/download/update-manifest.json)，应用内不再要求填写 URL |
+| 下载进度 | Android 使用系统下载器的真实字节数，在应用更新页显示百分比和已下载大小，完成后打开系统安装确认 |
 | 无网络或更新服务不可用 | 保留当前 APK 和全部本地数据，继续使用 |
-| 自己托管 | 在“个人资料 → 应用更新”替换为自己的清单 URL |
+| 自己托管 | 构建时设置 `VITE_UPDATE_MANIFEST_URL`，应用界面不暴露更新地址 |
 
 ### 发布自己的更新源
 
@@ -147,15 +150,21 @@ npm run android:build
 npm run update:publish -- \
   --dir=update-server \
   --url=https://你的域名/rolecommunity \
-  --versionCode=5 \
+  --versionCode=6 \
   --notes="本次更新说明"
 ```
 
-将生成的 `update-server/` 目录部署到支持 HTTPS 的静态文件服务器，确保清单和 APK 均可公开访问：
+将生成的 `update-server/` 目录部署到支持 HTTPS 的静态文件服务器，确保清单和 APK 均可公开访问；如果要让应用读取自托管地址，在构建前设置 `VITE_UPDATE_MANIFEST_URL`：
+
+```bash
+VITE_UPDATE_MANIFEST_URL=https://你的域名/rolecommunity/update-manifest.json npm run build
+```
+
+清单和 APK 的路径示例：
 
 ```text
 https://你的域名/rolecommunity/update-manifest.json
-https://你的域名/rolecommunity/RoleCommunity-0.1.4-5.apk
+https://你的域名/rolecommunity/RoleCommunity-0.1.5-6.apk
 ```
 
 发布脚本会校验版本号和 Gradle 的 `versionCode` 是否一致，并写入 APK 的 SHA-256。后续 APK 必须使用同一签名密钥，否则 Android 不会覆盖安装。`update-server/` 已加入 `.gitignore`，不会把 APK 意外提交进源码仓库。
@@ -201,13 +210,19 @@ Python / C++ → OpenCV → PyTorch / CNN → 检测与分割
 
 GitHub 索引只保存官方仓库链接、用途摘要和许可证提示，不复制第三方代码。使用前请回到原仓库核对当前 LICENSE、模型权重和数据集条款。已收录的入口包括 [OpenCV](https://github.com/opencv/opencv)、[MMDetection](https://github.com/open-mmlab/mmdetection)、[Grounding DINO](https://github.com/IDEA-Research/GroundingDINO)、[SAM 2](https://github.com/facebookresearch/sam2)、[DINOv2](https://github.com/facebookresearch/dinov2)、[Nerfstudio](https://github.com/nerfstudio-project/nerfstudio)、[OpenVLA](https://github.com/openvla/openvla)、[ONNX](https://github.com/onnx/onnx) 和 [TensorRT](https://github.com/NVIDIA/TensorRT)。
 
-在知识库页面导入资料时，可以把内容放入当前库，也可以选择“新建一个独立知识库”。重新构建内置资料：
+在知识库页面导入资料时，可以把内容放入当前库，也可以选择“新建一个独立知识库”。条目操作菜单支持查看、编辑、生成帖子和删除；资料索引提供独立搜索框，移动端采用可滚动的双列筛选面板。重新构建内置资料：
 
 ```bash
 npm run knowledge:build
 ```
 
 原始 Markdown 与结构化条目位于 [`src/assets/`](src/assets/)，方便继续整理或替换为自己的知识库。
+
+### 投资小白课堂
+
+这是一个独立的内置知识库，默认不会混入「面试修炼场」的信息流。内容是面向初学者的中文整理版，覆盖目标与期限、股票 / 基金、复利、分散与资产配置、财务报表、费用、投资心理和常见诈骗。条目不是个股推荐，也不构成投资、税务或法律建议。
+
+资料以官方开放内容为事实核对入口：[Investor.gov 投资入门](https://www.investor.gov/introduction-investing)、[股票 FAQ](https://www.investor.gov/introduction-investing/investing-basics/investment-products/stocks)、[资产配置与再平衡](https://www.investor.gov/additional-resources/general-resources/publications-research/info-sheets/beginners-guide-asset)，以及采用 CC BY-NC-SA 4.0 的 [OpenStax Principles of Economics 3e](https://openstax.org/books/principles-economics-3e)。仓库只保存自编摘要和来源链接，不复制受版权保护的整本投资书。
 
 ## 项目结构
 

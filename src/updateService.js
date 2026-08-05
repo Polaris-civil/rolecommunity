@@ -16,9 +16,7 @@ function storage() {
 
 function defaultManifestUrl() {
   const configured = String(import.meta.env.VITE_UPDATE_MANIFEST_URL || '').trim();
-  if (configured) return configured;
-  if (!Capacitor.isNativePlatform() && typeof window !== 'undefined') return `${window.location.origin}/update-manifest.json`;
-  return DEFAULT_MANIFEST_URL;
+  return configured || DEFAULT_MANIFEST_URL;
 }
 
 export function readUpdateSettings() {
@@ -27,9 +25,8 @@ export function readUpdateSettings() {
   try {
     const parsed = JSON.parse(saved);
     const autoCheck = parsed.autoCheck !== false;
-    const savedManifestUrl = String(parsed.manifestUrl || '').trim();
     return {
-      manifestUrl: parsed.manifestUrl === undefined || (autoCheck && !savedManifestUrl) ? defaultManifestUrl() : savedManifestUrl,
+      manifestUrl: defaultManifestUrl(),
       autoCheck,
       lastCheckedAt: String(parsed.lastCheckedAt || ''),
     };
@@ -41,7 +38,7 @@ export function readUpdateSettings() {
 export function saveUpdateSettings(values) {
   const next = {
     ...readUpdateSettings(),
-    manifestUrl: String(values?.manifestUrl ?? '').trim(),
+    manifestUrl: defaultManifestUrl(),
     autoCheck: values?.autoCheck !== false,
   };
   storage()?.setItem(SETTINGS_KEY, JSON.stringify(next));
@@ -97,14 +94,43 @@ export async function checkForUpdate({ manifestUrl } = {}) {
   }
 }
 
-export async function downloadAndInstallUpdate(manifest) {
+export async function downloadAndInstallUpdate(manifest, { onProgress } = {}) {
   if (!manifest?.apkUrl) throw new Error('更新清单没有可下载的 APK');
   if (Capacitor.isNativePlatform()) {
-    return nativeUpdater.downloadAndInstall({
+    const queued = await nativeUpdater.downloadAndInstall({
       url: manifest.apkUrl,
       fileName: `RoleCommunity-${manifest.version}.apk`,
     });
+    const downloadId = Number(queued?.downloadId);
+    onProgress?.({ status: 'pending', progress: 0, downloadId });
+    if (!Number.isFinite(downloadId) || typeof nativeUpdater.getDownloadProgress !== 'function') return queued;
+    return new Promise((resolve, reject) => {
+      const startedAt = Date.now();
+      const poll = async () => {
+        if (Date.now() - startedAt > 30 * 60 * 1000) {
+          reject(new Error('更新下载超时，请稍后重试'));
+          return;
+        }
+        try {
+          const progress = await nativeUpdater.getDownloadProgress({ downloadId });
+          onProgress?.({ ...progress, downloadId });
+          if (progress?.status === 'complete') {
+            resolve({ ...queued, ...progress });
+            return;
+          }
+          if (progress?.status === 'failed') {
+            reject(new Error('更新下载失败，请检查网络后重试'));
+            return;
+          }
+          globalThis.setTimeout(poll, 400);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      globalThis.setTimeout(poll, 200);
+    });
   }
+  onProgress?.({ status: 'complete', progress: 100 });
   globalThis.open(manifest.apkUrl, '_blank', 'noopener,noreferrer');
   return { opened: true };
 }

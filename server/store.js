@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createBuiltinKnowledge } from './builtin-knowledge.js';
 import { createSeedData } from './seed.js';
 import { AVATAR_LIBRARY_VERSION, profileForSeed } from '../src/avatarLibrary.js';
-import { ensureCatchyTitle } from '../src/humanGenerator.js';
+import { generateCommunityComment, ensureCatchyTitle } from '../src/humanGenerator.js';
 import { ensureKnowledgeBases } from '../src/knowledgeBases.js';
 import { emptyUsage } from '../src/usage.js';
 
@@ -36,6 +36,7 @@ const cvCategories = new Set([
   '视觉基础模型与多模态', '生成式视觉', '三维、四维与空间智能', '世界模型、强化学习与具身智能',
   '自动驾驶与多传感器融合', '数据工程、部署与 MLOps', '项目、可信视觉与求职',
 ]);
+const financeCategories = new Set(['投资入门', '股票入门', '基金入门', '投资组合', '风险管理', '投资策略', '股票分析', '财务基础', '投资心理', '防骗与安全', '个人财务', '投资方法']);
 
 function migrateLegacyDemoData(store) {
   const seed = createSeedData();
@@ -70,10 +71,37 @@ function migrateLegacyDemoData(store) {
 function removeStaleDemoPosts(store) {
   const validKnowledgeIds = new Set(store.knowledge.map((item) => item.id));
   const retained = store.posts.filter((post) => !(post.generationSource === 'demo'
-    && (!validKnowledgeIds.has(post.knowledgeId) || !cvCategories.has(post.category))));
+    && (!validKnowledgeIds.has(post.knowledgeId) || (!cvCategories.has(post.category) && !financeCategories.has(post.category)))));
   if (retained.length === store.posts.length) return false;
   store.posts = retained;
   return true;
+}
+
+function ensurePostEngagement(store) {
+  let changed = false;
+  for (const post of store.posts || []) {
+    if ((post.comments || []).some((comment) => comment.isAi)) continue;
+    const knowledge = store.knowledge.find((item) => item.id === post.knowledgeId);
+    const roles = store.roles.filter((role) => role.id !== post.authorId && !role.requiresQa);
+    if (!knowledge || !roles.length) continue;
+    const kinds = roles.length >= 3 ? ['explain', 'question', 'extend'] : ['explain', 'question'];
+    post.comments ||= [];
+    kinds.forEach((kind, index) => {
+      const role = roles[index % roles.length];
+      post.comments.push({
+        id: `comment-migrated-${post.id}-${kind}`,
+        authorId: role.id,
+        authorProfile: profileForSeed(`${post.id}:${kind}`),
+        content: generateCommunityComment({ post, knowledge, kind, variationSeed: `${post.id}:migrated:${kind}` }),
+        createdAt: post.createdAt,
+        isAi: true,
+        commentType: kind,
+        intent: kind,
+      });
+    });
+    changed = true;
+  }
+  return changed;
 }
 
 async function ensureStore() {
@@ -105,8 +133,8 @@ async function ensureStore() {
         store.roles.push(beginnerRole);
         changed = true;
       }
-      const existingBuiltins = store.knowledge.filter((item) => item.id.startsWith('builtin-ai-'));
-      const nonBuiltinKnowledge = store.knowledge.filter((item) => !item.id.startsWith('builtin-ai-'));
+      const existingBuiltins = store.knowledge.filter((item) => item.id.startsWith('builtin-ai-') || item.id.startsWith('builtin-finance-'));
+      const nonBuiltinKnowledge = store.knowledge.filter((item) => !item.id.startsWith('builtin-ai-') && !item.id.startsWith('builtin-finance-'));
       const existingByKey = new Map(existingBuiltins.map((item) => [knowledgeKey(item), item]));
       const builtinKeys = new Set(builtins.map(knowledgeKey));
       const needsBuiltinRefresh = existingBuiltins.length !== builtins.length
@@ -142,6 +170,7 @@ async function ensureStore() {
         }
       }
       changed = removeStaleDemoPosts(store) || changed;
+      changed = ensurePostEngagement(store) || changed;
       for (const post of store.posts) {
         if (post.generationSource !== 'demo' || !legacyTitlePattern.test(post.title)) continue;
         const knowledge = store.knowledge.find((item) => item.id === post.knowledgeId);

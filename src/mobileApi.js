@@ -3,13 +3,14 @@ import { createSeedData } from '../server/seed.js';
 import { createBuiltinKnowledge } from './builtinKnowledge.js';
 import { AVATAR_LIBRARY_VERSION, profileForSeed, randomProfile } from './avatarLibrary.js';
 import {
+  generateCommunityComment,
   ensureCatchyTitle,
   generateFallbackKnowledgeAnswer,
   generateFallbackQuestion,
   generateFallbackReply,
   mockGeneratePost,
 } from './humanGenerator.js';
-import { extractKnowledgeLocal, extractPdfText } from './localContent.js';
+import { decodeTextFile, extractDocxText, extractKnowledgeLocal, extractPdfText } from './localContent.js';
 import { chooseReplyRole, isQuestionComment } from './replyRouting.js';
 import { addKnowledgeBase, ensureKnowledgeBases } from './knowledgeBases.js';
 import { emptyUsage, recordFallbackUsage, recordTokenUsage, summarizeUsage } from './usage.js';
@@ -48,6 +49,7 @@ const cvCategories = new Set([
   '视觉基础模型与多模态', '生成式视觉', '三维、四维与空间智能', '世界模型、强化学习与具身智能',
   '自动驾驶与多传感器融合', '数据工程、部署与 MLOps', '项目、可信视觉与求职',
 ]);
+const financeCategories = new Set(['投资入门', '股票入门', '基金入门', '投资组合', '风险管理', '投资策略', '股票分析', '财务基础', '投资心理', '防骗与安全', '个人财务', '投资方法']);
 export const isMobileApp = Capacitor.isNativePlatform();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -89,14 +91,15 @@ function readStore() {
 
 function normalizeStore(store) {
   ensureKnowledgeBases(store);
+  ensurePostEngagement(store);
   if (!store.usage) store.usage = emptyUsage();
   return store;
 }
 
 function addBuiltinKnowledge(store) {
   const builtins = createBuiltinKnowledge();
-  const existingBuiltins = store.knowledge.filter((item) => item.id.startsWith('builtin-ai-'));
-  const nonBuiltinKnowledge = store.knowledge.filter((item) => !item.id.startsWith('builtin-ai-'));
+  const existingBuiltins = store.knowledge.filter((item) => item.id.startsWith('builtin-ai-') || item.id.startsWith('builtin-finance-'));
+  const nonBuiltinKnowledge = store.knowledge.filter((item) => !item.id.startsWith('builtin-ai-') && !item.id.startsWith('builtin-finance-'));
   const knowledgeKey = (item) => `${item.source || ''}\n${String(item.content || '').replace(/\s+/g, '')}`;
   const previousByContent = new Map(existingBuiltins.map((item) => [knowledgeKey(item), item]));
   const mergedBuiltins = builtins.map((item) => {
@@ -149,8 +152,32 @@ function removeStaleDemoPosts(store) {
   return {
     ...store,
     posts: store.posts.filter((post) => !(post.generationSource === 'demo'
-      && (!validKnowledgeIds.has(post.knowledgeId) || !cvCategories.has(post.category)))),
+      && (!validKnowledgeIds.has(post.knowledgeId) || (!cvCategories.has(post.category) && !financeCategories.has(post.category))))),
   };
+}
+
+function ensurePostEngagement(store) {
+  for (const post of store.posts || []) {
+    if ((post.comments || []).some((comment) => comment.isAi)) continue;
+    const knowledge = store.knowledge.find((item) => item.id === post.knowledgeId);
+    const roles = store.roles.filter((role) => role.id !== post.authorId && !role.requiresQa);
+    if (!knowledge || !roles.length) continue;
+    const kinds = roles.length >= 3 ? ['explain', 'question', 'extend'] : ['explain', 'question'];
+    post.comments ||= [];
+    kinds.forEach((kind, index) => {
+      const role = roles[index % roles.length];
+      post.comments.push({
+        id: `comment-migrated-${post.id}-${kind}`,
+        authorId: role.id,
+        authorProfile: profileForSeed(`${post.id}:${kind}`),
+        content: generateCommunityComment({ post, knowledge, kind, variationSeed: `${post.id}:migrated:${kind}` }),
+        createdAt: post.createdAt,
+        isAi: true,
+        commentType: kind,
+        intent: kind,
+      });
+    });
+  }
 }
 
 function refreshLegacyPostTitles(store) {
@@ -249,6 +276,25 @@ function ensureProfiles(store) {
 
 function decoratePost(store, post) {
   return { ...post, author: withProfile(roleFor(store, post), post.authorProfile || profileForSeed(post.id)) };
+}
+
+function appendCommunityComments(store, post, knowledge, author) {
+  const roles = store.roles.filter((role) => role.id !== author.id && !role.requiresQa);
+  if (!roles.length) return;
+  const kinds = roles.length >= 3 ? ['explain', 'question', 'extend'] : ['explain', 'question'];
+  kinds.forEach((kind, index) => {
+    const role = roles[index % roles.length];
+    post.comments.push({
+      id: makeId('comment'),
+      authorId: role.id,
+      authorProfile: randomProfile(),
+      content: generateCommunityComment({ post, knowledge, kind, variationSeed: `${post.id}:${kind}:${index}` }),
+      createdAt: new Date().toISOString(),
+      isAi: true,
+      commentType: kind,
+      intent: kind,
+    });
+  });
 }
 
 function summarize(store) {
@@ -441,6 +487,7 @@ async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion
     });
     store.activity.unshift({ id: makeId('activity'), type: 'reply', text: `${answerRole.nickname} 回答了求知帖`, createdAt: answerCreatedAt, knowledgeBaseId: knowledge.knowledgeBaseId });
   }
+  appendCommunityComments(store, post, knowledge, role);
   knowledge.status = 'published';
   knowledge.publishedAt = createdAt;
   store.posts.unshift(post);
@@ -585,7 +632,9 @@ export const mobileApi = {
     let source = String(formData.get('sourceName') || '手动录入');
     if (file && typeof file.text === 'function') {
       source = file.name || source;
-      text = /\.pdf$/i.test(source) || file.type === 'application/pdf' ? await extractPdfText(file) : await file.text();
+      if (/\.pdf$/i.test(source) || file.type === 'application/pdf') text = await extractPdfText(file);
+      else if (/\.docx$/i.test(source) || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') text = await extractDocxText(file);
+      else text = await decodeTextFile(file);
     }
     const entries = extractKnowledgeLocal(text, source);
     if (!entries.length) throw new Error('没有识别到足够完整的知识内容');

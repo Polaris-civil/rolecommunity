@@ -11,6 +11,8 @@ const id = () => {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 };
 
+export { decodeTextBuffer, decodeTextFile } from './textEncoding.js';
+
 export function inferCategory(text) {
   const categories = [
     ['前端', /JavaScript|TypeScript|React|Vue|CSS|浏览器|DOM|前端/i],
@@ -19,12 +21,15 @@ export function inferCategory(text) {
     ['网络', /HTTP|TCP|网络|DNS|协议/i],
     ['AI', /AI|大模型|LLM|RAG|提示词|向量/i],
     ['算法', /算法|复杂度|动态规划|二叉树|链表/i],
+    ['投资入门', /投资|股票|基金|资产配置|指数基金|复利|分散投资/i],
+    ['财务基础', /财务报表|现金流|利润表|资产负债表|市盈率|估值/i],
+    ['风险管理', /风险|回撤|波动|防骗|诈骗|高收益/i],
   ];
   return categories.find(([, pattern]) => pattern.test(text))?.[0] || '通识';
 }
 
 export function inferTags(text) {
-  const candidates = ['JavaScript', 'TypeScript', 'React', 'Vue', 'MySQL', 'Redis', 'HTTP', 'TCP', 'RAG', '大模型', '算法', '面试', '系统设计'];
+  const candidates = ['JavaScript', 'TypeScript', 'React', 'Vue', 'MySQL', 'Redis', 'HTTP', 'TCP', 'RAG', '大模型', '算法', '面试', '系统设计', '股票', '基金', '投资', '复利', '资产配置', '风险'];
   const tags = candidates.filter((tag) => text.toLowerCase().includes(tag.toLowerCase())).slice(0, 3);
   return tags.length ? tags : [inferCategory(text)];
 }
@@ -106,4 +111,10 @@ export async function extractPdfText(file) {
     pages.push(content.items.map((item) => item.str || '').join(' '));
   }
   return pages.join('\n\n');
+}
+
+export async function extractDocxText(file) {
+  const mammoth = await import('mammoth/mammoth.browser.js');
+  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return String(result?.value || '');
 }

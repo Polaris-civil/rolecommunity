@@ -1,6 +1,6 @@
 {
   "name": "rolecommunity",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "scripts": {
@@ -27,6 +27,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "katex": "^0.18.1",
+    "mammoth": "^1.12.0",
     "multer": "^2.0.2",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^6.2.108",

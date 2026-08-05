@@ -1,6 +1,6 @@
 export const APP_ID = 'com.rolecommunity.app';
-export const APP_VERSION = '0.1.4';
-export const APP_VERSION_CODE = 5;
+export const APP_VERSION = '0.1.5';
+export const APP_VERSION_CODE = 6;
 
 export function compareVersionCodes(currentCode, latestCode) {
   const current = Number.isFinite(Number(currentCode)) ? Number(currentCode) : 0;

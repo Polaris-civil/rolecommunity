@@ -1,6 +1,7 @@
 import {
   ArrowUpRight,
   BookOpenCheck,
+  ChevronDown,
   Clock3,
   Eye,
   Heart,
@@ -57,7 +58,11 @@ function GenerateForm({ data, onClose, onGenerate }) {
     roleId: '',
     type: 'discussion',
   });
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [working, setWorking] = useState(false);
+  const selectedCount = values.category === '全部'
+    ? pending.length
+    : categoryCounts.find(([item]) => item === values.category)?.[1] || 0;
 
   const submit = async (event) => {
     event.preventDefault();
@@ -76,16 +81,20 @@ function GenerateForm({ data, onClose, onGenerate }) {
         <span className="modal-intro-icon"><Sparkles size={18} /></span>
         <div><strong>从一个方向开始</strong><p>系统会在这个分类的待发布内容中随机抽取知识点，避免每次都重复同一种主题。</p></div>
       </div>
-      <label>
-        <span>选择内容分类</span>
-        <select value={values.category} onChange={(event) => setValues({ ...values, category: event.target.value })} required>
-          <option value="全部">全部分类 · {pending.length} 条待发布</option>
-          {categoryCounts.map(([item, count]) => <option key={item} value={item}>{item} · {count} 条待发布</option>)}
-        </select>
-      </label>
-      <div className="category-choice-grid" aria-label="待发布分类">
-        <button className={values.category === '全部' ? 'active' : ''} type="button" onClick={() => setValues({ ...values, category: '全部' })}><strong>全部方向</strong><small>{pending.length} 条</small></button>
-        {categoryCounts.slice(0, 6).map(([item, count]) => <button className={values.category === item ? 'active' : ''} type="button" key={item} onClick={() => setValues({ ...values, category: item })}><strong>{item}</strong><small>{count} 条</small></button>)}
+      <div className="category-picker-field">
+        <span>知识分类</span>
+        <div className="category-picker">
+          <button className="category-picker-trigger" type="button" aria-haspopup="listbox" aria-expanded={categoryOpen} onClick={() => setCategoryOpen((open) => !open)}>
+            <span><strong>{values.category === '全部' ? '全部方向' : values.category}</strong><small>{selectedCount} 条待发布</small></span>
+            <ChevronDown className={categoryOpen ? 'chevron-open' : ''} size={17} />
+          </button>
+          {categoryOpen && (
+            <div className="category-picker-menu" role="listbox" aria-label="选择知识分类">
+              <button className={values.category === '全部' ? 'active' : ''} type="button" role="option" aria-selected={values.category === '全部'} onClick={() => { setValues({ ...values, category: '全部' }); setCategoryOpen(false); }}><span>全部方向</span><small>{pending.length} 条</small></button>
+              {categoryCounts.map(([item, count]) => <button className={values.category === item ? 'active' : ''} type="button" role="option" aria-selected={values.category === item} key={item} onClick={() => { setValues({ ...values, category: item }); setCategoryOpen(false); }}><span>{item}</span><small>{count} 条</small></button>)}
+            </div>
+          )}
+        </div>
       </div>
       <div className="form-grid-2">
         <label>

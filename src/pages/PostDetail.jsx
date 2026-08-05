@@ -144,6 +144,7 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
                       <strong>{actor?.nickname || item.authorName}</strong>
                       {item.isAi && <span className="ai-badge">AI</span>}
                       {item.qaType && <span className={`qa-comment-label ${item.qaType}`}>{item.qaType === 'answer' ? '回答' : '提问'}</span>}
+                      {item.commentType && <span className={`qa-comment-label ${item.commentType}`}>{item.commentType === 'question' ? '请教' : item.commentType === 'extend' ? '拓展' : '补充'}</span>}
                       {!item.qaType && item.isQuestion && <span className="qa-comment-label question">提问</span>}
                       {item.replyType === 'answer' && <span className="qa-comment-label answer">答疑</span>}
                       <time>{relativeTime(item.createdAt)}</time>

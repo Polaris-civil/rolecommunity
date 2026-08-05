@@ -5,6 +5,13 @@ export const DEFAULT_KNOWLEDGE_BASE = {
   color: '#168d7c',
 };
 
+export const FINANCE_KNOWLEDGE_BASE = {
+  id: 'kb-finance',
+  name: '投资小白课堂',
+  description: '股票、基金、风险和个人财务的入门科普讨论。',
+  color: '#d58a1e',
+};
+
 const normalizeName = (value) => String(value || '').trim().replace(/\.(md|markdown|txt|pdf)$/i, '').trim();
 
 export function knowledgeBaseIdForName(name) {
@@ -22,8 +29,14 @@ function looksLikeComputerVision(entry = {}) {
     || /计算机视觉|AI算法岗|算法岗面经|CV 入门|视觉|面试修炼场/i.test(text);
 }
 
+function looksLikeFinance(entry = {}) {
+  const text = `${entry.id || ''} ${entry.source || ''} ${entry.group || ''} ${entry.category || ''}`;
+  return entry.id?.startsWith('builtin-finance-') || /投资小白课堂|金融|股票|基金|财务/.test(text);
+}
+
 function inferredBase(entry = {}) {
   if (looksLikeComputerVision(entry)) return DEFAULT_KNOWLEDGE_BASE;
+  if (looksLikeFinance(entry)) return FINANCE_KNOWLEDGE_BASE;
   const name = normalizeName(entry.source) || '未命名知识库';
   return {
     id: knowledgeBaseIdForName(name),
@@ -37,6 +50,7 @@ export function ensureKnowledgeBases(store) {
   const existing = Array.isArray(store.knowledgeBases) ? store.knowledgeBases : [];
   const byId = new Map(existing.filter((item) => item?.id).map((item) => [item.id, item]));
   if (!byId.has(DEFAULT_KNOWLEDGE_BASE.id)) byId.set(DEFAULT_KNOWLEDGE_BASE.id, { ...DEFAULT_KNOWLEDGE_BASE });
+  if (!byId.has(FINANCE_KNOWLEDGE_BASE.id)) byId.set(FINANCE_KNOWLEDGE_BASE.id, { ...FINANCE_KNOWLEDGE_BASE });
 
   for (const entry of store.knowledge || []) {
     const fallback = inferredBase(entry);

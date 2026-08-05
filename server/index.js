@@ -6,7 +6,8 @@ import express from 'express';
 import multer from 'multer';
 import pdf from 'pdf-parse';
 import { randomProfile } from '../src/avatarLibrary.js';
-import { generateFallbackQuestion } from '../src/humanGenerator.js';
+import { generateCommunityComment, generateFallbackQuestion } from '../src/humanGenerator.js';
+import { decodeTextBuffer } from '../src/textEncoding.js';
 import { chooseReplyRole, isQuestionComment } from '../src/replyRouting.js';
 import { addKnowledgeBase, ensureKnowledgeBases } from '../src/knowledgeBases.js';
 import { recordFallbackUsage, recordTokenUsage, summarizeUsage } from '../src/usage.js';
@@ -43,6 +44,25 @@ const withProfile = (role, profile) => {
   return role ? { ...role, ...visualProfile, profileId } : { ...visualProfile, profileId };
 };
 const decoratePost = (store, post) => ({ ...post, author: withProfile(roleFor(store, post), post.authorProfile) });
+
+function appendCommunityComments(store, post, knowledge, author) {
+  const roles = store.roles.filter((role) => role.id !== author.id && !role.requiresQa);
+  if (!roles.length) return;
+  const kinds = roles.length >= 3 ? ['explain', 'question', 'extend'] : ['explain', 'question'];
+  kinds.forEach((kind, index) => {
+    const role = roles[index % roles.length];
+    post.comments.push({
+      id: `comment-${randomUUID()}`,
+      authorId: role.id,
+      authorProfile: randomProfile(),
+      content: generateCommunityComment({ post, knowledge, kind, variationSeed: `${post.id}:${kind}:${index}` }),
+      createdAt: new Date().toISOString(),
+      isAi: true,
+      commentType: kind,
+      intent: kind,
+    });
+  });
+}
 
 async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion', category = '全部', knowledgeBaseId } = {}) {
   ensureKnowledgeBases(store);
@@ -128,6 +148,7 @@ async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion
       knowledgeBaseId: knowledge.knowledgeBaseId,
     });
   }
+  appendCommunityComments(store, post, knowledge, role);
   knowledge.status = 'published';
   knowledge.publishedAt = post.createdAt;
   store.posts.unshift(post);
@@ -283,8 +304,12 @@ app.post('/api/knowledge/import', upload.single('file'), withErrorHandling(async
     if (req.file.mimetype === 'application/pdf' || source.toLowerCase().endsWith('.pdf')) {
       const parsed = await pdf(req.file.buffer);
       text = parsed.text;
+    } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || source.toLowerCase().endsWith('.docx')) {
+      const mammoth = await import('mammoth');
+      const parsed = await mammoth.extractRawText({ buffer: req.file.buffer });
+      text = parsed.value;
     } else {
-      text = req.file.buffer.toString('utf8');
+      text = decodeTextBuffer(req.file.buffer);
     }
   }
   const entries = extractKnowledge(text, source);

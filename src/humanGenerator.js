@@ -244,6 +244,29 @@ export function generateFallbackQuestion({ knowledge, variationSeed } = {}) {
   return choose(beginnerQuestions, seed)({ title: cleanTitle(knowledge.title) });
 }
 
+const communityCommentVariants = {
+  explain: [
+    ({ topic, source }) => `补一个我踩过的坑：${topic}真正容易混的不是定义，而是前提。帖子里这段“${source}”放回实际流程里看，会更容易判断什么时候能直接用。`,
+    ({ topic, source }) => `我会把${topic}记成一个小检查顺序：先看输入和条件，再看中间过程，最后核对结果。你这里提到的“${source}”正好是最容易漏掉的一步。`,
+  ],
+  question: [
+    ({ topic }) => `想请教一下：如果${topic}的输入条件发生变化，原来的结论还成立吗？我现在能跟着正文走，但换个场景就不太确定了。`,
+    ({ topic }) => `我也在学${topic}，有个小疑问：实际排查时应该先看哪个信号？如果有人有一套判断顺序，想跟着练一遍。`,
+  ],
+  extend: [
+    ({ topic }) => `顺着这个思路再往前一步，我会把${topic}和线上监控、数据分布一起看。离线指标漂亮，不代表换了输入或延迟约束后仍然成立。`,
+    ({ topic }) => `这个角度还可以延伸到工程取舍：${topic}的结论落地时，通常还要同时考虑成本、稳定性和失败后的降级路径。`,
+  ],
+};
+
+export function generateCommunityComment({ post, knowledge, kind = 'explain', variationSeed } = {}) {
+  const seed = variationSeed || `${post?.id || post?.title}:${knowledge?.id || knowledge?.title}:${kind}`;
+  const topic = clip(cleanTitle(post?.title || knowledge?.title).replace(/[「」]/g, ''), 24);
+  const source = clip(plainText(knowledge?.content || post?.body || post?.excerpt), 34);
+  const variants = communityCommentVariants[kind] || communityCommentVariants.explain;
+  return choose(variants, seed)({ topic: topic || '这个知识点', source: source || '正文里的关键条件' });
+}
+
 const replyVariants = [
   ({ topic, quote }) => `你提到“${quote}”很关键。我会先把它放回${topic}的前提里看，再判断这个结论能不能直接套用。`,
   ({ topic, quote }) => `我也被“${quote}”这一步绕过。把${topic}按执行顺序写出来，前后关系会清楚很多。`,

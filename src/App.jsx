@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle2, LoaderCircle, X } from './icons.jsx';
 import { App as CapacitorApp } from '@capacitor/app';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, isMobileApp } from './api.js';
 import { Layout } from './components/Layout.jsx';
 import { ModelSettingsModal } from './components/ModelSettingsModal.jsx';
@@ -11,7 +11,7 @@ import { KnowledgePage } from './pages/KnowledgePage.jsx';
 import { LikedPage } from './pages/LikedPage.jsx';
 import { PostDetail } from './pages/PostDetail.jsx';
 import { RolesPage } from './pages/RolesPage.jsx';
-import { APP_VERSION, checkForUpdate, downloadAndInstallUpdate, readUpdateSettings, saveUpdateSettings } from './updateService.js';
+import { APP_VERSION, checkForUpdate, downloadAndInstallUpdate, readUpdateSettings } from './updateService.js';
 
 const LIKED_POSTS_KEY = 'rolecommunity.liked-posts.v1';
 const KNOWLEDGE_BASE_KEY = 'rolecommunity.active-knowledge-base.v1';
@@ -91,6 +91,7 @@ export default function App() {
   const [updateSettings, setUpdateSettings] = useState(readUpdateSettings);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateDownload, setUpdateDownload] = useState(null);
   const navigationRef = useRef({ view: 'feed', selectedPost: null, modelSettingsOpen: false, updateSettingsOpen: false });
 
   const refresh = useCallback(async () => {
@@ -116,7 +117,7 @@ export default function App() {
   const checkUpdate = useCallback(async (manifestUrl) => {
     setUpdateChecking(true);
     try {
-      const result = await checkForUpdate({ manifestUrl: manifestUrl ?? updateSettings.manifestUrl });
+      const result = await checkForUpdate({ manifestUrl: manifestUrl || undefined });
       setUpdateInfo(result);
       setUpdateSettings(readUpdateSettings());
       return result;
@@ -222,17 +223,19 @@ export default function App() {
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
+  const workspaceData = useMemo(() => (data ? scopedData(data, activeKnowledgeBaseId) : null), [activeKnowledgeBaseId, data]);
+
   const notify = (message, type = 'success') => setToast({ message, type });
 
-  const saveUpdates = async (values) => {
-    const next = saveUpdateSettings(values);
-    setUpdateSettings(next);
-    return checkUpdate(next.manifestUrl);
-  };
-
   const installUpdate = async () => {
-    await downloadAndInstallUpdate(updateInfo?.manifest);
-    notify('已开始下载更新，下载完成后请确认安装');
+    setUpdateDownload({ status: 'pending', progress: 0 });
+    try {
+      await downloadAndInstallUpdate(updateInfo?.manifest, { onProgress: setUpdateDownload });
+      notify('更新已下载，正在打开系统安装确认');
+    } catch (downloadError) {
+      setUpdateDownload({ status: 'failed', progress: 0 });
+      throw downloadError;
+    }
   };
 
   const run = async (action, successMessage) => {
@@ -279,7 +282,6 @@ export default function App() {
   const generatePost = async (values) => run(async () => {
     const result = await api.generate({ ...values, knowledgeBaseId: values.knowledgeBaseId || activeKnowledgeBaseId });
     await refresh();
-    setSelectedPost(result.post);
     setViewState('feed');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return result;
@@ -322,8 +324,6 @@ export default function App() {
   if (!data) {
     return <main className="loading-state"><span className="brand-mark"><LoaderCircle className="spinner" size={21} /></span><strong>正在载入社区</strong></main>;
   }
-
-  const workspaceData = scopedData(data, activeKnowledgeBaseId);
 
   let page;
   if (selectedPost) {
@@ -394,9 +394,8 @@ export default function App() {
         onUpdateSettings={(changes) => run(async () => { await api.updateSettings(changes); await refresh(); })}
         onRefresh={() => run(refresh, '活动已刷新')}
         onRun={() => run(async () => {
-          const result = await api.runAutomation({ knowledgeBaseId: activeKnowledgeBaseId });
+          await api.runAutomation({ knowledgeBaseId: activeKnowledgeBaseId });
           await refresh();
-          setSelectedPost(result.post);
           setViewState('feed');
         }, '自动发帖完成')}
       />
@@ -425,8 +424,8 @@ export default function App() {
           settings={updateSettings}
           result={updateInfo}
           checking={updateChecking}
+          downloadProgress={updateDownload}
           onCheck={checkUpdate}
-          onSave={saveUpdates}
           onInstall={() => run(installUpdate)}
           onClose={() => setUpdateSettingsOpen(false)}
         />

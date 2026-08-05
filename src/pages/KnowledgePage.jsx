@@ -190,10 +190,10 @@ export function KnowledgePage({ data, query, onImport, onCreate, onUpdate, onDel
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => { event.preventDefault(); uploadFile(event.dataTransfer.files[0]); }}
       >
-        <input ref={fileRef} type="file" accept=".pdf,.md,.txt,text/plain,application/pdf" onChange={(event) => uploadFile(event.target.files[0])} hidden />
+        <input ref={fileRef} type="file" accept=".pdf,.md,.txt,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(event) => uploadFile(event.target.files[0])} hidden />
         <span className="upload-icon"><UploadCloud size={25} /></span>
         <div>
-          <strong className="upload-desktop-label">{uploading ? '正在解析资料…' : '拖入或选择 PDF、Markdown、TXT'}</strong>
+          <strong className="upload-desktop-label">{uploading ? '正在解析资料…' : '拖入或选择 PDF、Markdown、TXT、Word'}</strong>
           <strong className="upload-mobile-label">{uploading ? '正在解析资料…' : '选择资料文件'}</strong>
           <small>手机点击“选择文件”，单个文件最大 15MB</small>
         </div>
@@ -203,6 +203,7 @@ export function KnowledgePage({ data, query, onImport, onCreate, onUpdate, onDel
       <section className="knowledge-layout">
         <aside className="knowledge-index">
           <div className="knowledge-index-title"><Layers3 size={16} /><strong>资料索引</strong></div>
+          <label className="knowledge-index-search"><Search size={14} /><input value={localSearch} onChange={(event) => setLocalSearch(event.target.value)} placeholder="搜索资料索引" aria-label="搜索资料索引" /></label>
           <button className={source === 'all' && category === 'all' && part === 'all' ? 'active' : ''} type="button" onClick={() => { setSource('all'); setCategory('all'); setPart('all'); setGroup('all'); setStatus('all'); setLocalSearch(''); }}><span><Layers3 size={15} />全部条目</span><small>{data.stats.knowledge}</small></button>
           <div className="knowledge-index-label">册次</div>
           {parts.map((item) => <button className={part === item ? 'active' : ''} type="button" key={item} onClick={() => { setPart(item); setSource('all'); }}><span><BookOpen size={15} />{item}</span><small>{data.knowledge.filter((entry) => entry.part === item).length}</small></button>)}

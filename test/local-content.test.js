@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { extractKnowledgeLocal, inferCategory, inferTags } from '../src/localContent.js';
+import { decodeTextBuffer, extractKnowledgeLocal, inferCategory, inferTags } from '../src/localContent.js';
+
+test('text decoding falls back to GB18030 for Chinese TXT files', () => {
+  assert.equal(decodeTextBuffer(Uint8Array.from([0xd6, 0xd0, 0xce, 0xc4])), '中文');
+});
 
 test('mobile content extraction keeps headings and classifies entries', () => {
   const entries = extractKnowledgeLocal('# TCP 网络\n\nTCP 连接通过握手建立可靠的数据传输。', '网络.md');

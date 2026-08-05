@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { AVATAR_LIBRARY_VERSION, avatarLibrary, generateNickname, nicknameMaterials, profileForSeed } from '../src/avatarLibrary.js';
-import { generateFallbackKnowledgeAnswer, generateFallbackQuestion, generateFallbackReply, mockGeneratePost } from '../src/humanGenerator.js';
+import { generateCommunityComment, generateFallbackKnowledgeAnswer, generateFallbackQuestion, generateFallbackReply, mockGeneratePost } from '../src/humanGenerator.js';
 import { buildPostSystemPrompt, buildPostUserPrompt, buildReplySystemPrompt, buildReplyUserPrompt, promptPreview } from '../src/promptTemplates.js';
 import { chooseReplyRole, isQuestionComment } from '../src/replyRouting.js';
-import builtinKnowledge from '../src/assets/ai-algorithm-knowledge.json' with { type: 'json' };
+import { createBuiltinKnowledge } from '../src/builtinKnowledge.js';
+
+const builtinKnowledge = createBuiltinKnowledge();
 
 test('avatar library contains 50 local profiles with mixed names', () => {
   assert.equal(avatarLibrary.length, 50);
@@ -64,6 +66,14 @@ test('fallback generation varies post structure and replies', () => {
   assert.ok(new Set(questions).size > 1);
 });
 
+test('new posts can seed positive discussion comments', () => {
+  const post = { id: 'post-comments', title: '为什么「目标检测」换场景就容易错？', body: '先看输入条件，再看模型输出。' };
+  const knowledge = { id: 'know-comments', content: '数据分布和边界条件会影响模型表现。' };
+  const comments = ['explain', 'question', 'extend'].map((kind) => generateCommunityComment({ post, knowledge, kind, variationSeed: kind }));
+  assert.ok(comments.every((comment) => comment.length >= 25));
+  assert.match(comments[1], /请教|疑问|应该|条件/);
+});
+
 test('question comments are routed to a relevant different role', () => {
   assert.equal(isQuestionComment('为什么 304 不返回正文？'), true);
   assert.equal(isQuestionComment('这个例子很清楚，谢谢分享'), false);
@@ -79,12 +89,13 @@ test('question comments are routed to a relevant different role', () => {
 });
 
 test('built-in knowledge is organized around the computer vision roadmap', () => {
-  assert.equal(builtinKnowledge.length, 423);
+  assert.ok(builtinKnowledge.length >= 443);
   assert.ok(builtinKnowledge.filter((entry) => entry.kind === 'roadmap').length >= 34);
   assert.ok(builtinKnowledge.filter((entry) => entry.kind === 'github').length >= 20);
   assert.ok(builtinKnowledge.filter((entry) => entry.kind === 'source').length >= 300);
-  assert.deepEqual(new Set(builtinKnowledge.map((entry) => entry.part)), new Set(['路线总览', '开源索引', '上册', '中册', '下册']));
+  assert.deepEqual(new Set(builtinKnowledge.map((entry) => entry.part)), new Set(['路线总览', '开源索引', '上册', '中册', '下册', '入门路线']));
   assert.ok(builtinKnowledge.every((entry) => entry.source && entry.group && entry.section && entry.category && entry.tags?.length && !['目录'].includes(entry.title)));
   assert.ok(builtinKnowledge.some((entry) => entry.category === '目标检测与图像分割'));
   assert.ok(builtinKnowledge.some((entry) => entry.url?.startsWith('https://github.com/')));
+  assert.ok(builtinKnowledge.filter((entry) => entry.id.startsWith('builtin-finance-')).length >= 20);
 });

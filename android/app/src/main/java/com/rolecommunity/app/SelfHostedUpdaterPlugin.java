@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 
@@ -78,6 +79,41 @@ public class SelfHostedUpdaterPlugin extends Plugin {
             call.resolve(result);
         } catch (Exception error) {
             call.reject("Unable to start APK download", error);
+        }
+    }
+
+    @PluginMethod
+    public void getDownloadProgress(PluginCall call) {
+        Long requestedId = call.getLong("downloadId");
+        if (requestedId == null || requestedId < 0 || downloadManager == null) {
+            call.reject("Download task is unavailable");
+            return;
+        }
+        Cursor cursor = null;
+        try {
+            cursor = downloadManager.query(new DownloadManager.Query().setFilterById(requestedId));
+            if (cursor == null || !cursor.moveToFirst()) {
+                call.resolve(new JSObject().put("status", "unknown").put("progress", 0));
+                return;
+            }
+            int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+            long downloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+            long total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+            int progress = total > 0 ? (int) Math.min(100, Math.round(downloaded * 100f / total)) : 0;
+            String state = "pending";
+            if (status == DownloadManager.STATUS_RUNNING) state = "downloading";
+            else if (status == DownloadManager.STATUS_SUCCESSFUL) state = "complete";
+            else if (status == DownloadManager.STATUS_FAILED) state = "failed";
+            JSObject result = new JSObject();
+            result.put("status", state);
+            result.put("progress", progress);
+            result.put("downloadedBytes", downloaded);
+            result.put("totalBytes", total);
+            call.resolve(result);
+        } catch (Exception error) {
+            call.reject("Unable to read download progress", error);
+        } finally {
+            if (cursor != null) cursor.close();
         }
     }
 
