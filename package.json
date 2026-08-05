@@ -1,0 +1,46 @@
+{
+  "name": "rolecommunity",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "node server/index.js",
+    "dev:web": "vite --host 127.0.0.1 --port 5174",
+    "dev:phone": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api:lan\" \"npm:dev:web:lan\"",
+    "dev:api:lan": "HOST=0.0.0.0 node server/index.js",
+    "dev:web:lan": "vite --host 0.0.0.0 --port 5174",
+    "build": "vite build",
+    "start": "NODE_ENV=production node server/index.js",
+    "test": "node --test",
+    "cap:sync": "npm run build && cap sync",
+    "android:build": "npm run build && cap sync android && cd android && ./gradlew assembleDebug",
+    "knowledge:build": "node scripts/build-builtin-knowledge.mjs",
+    "android:open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "katex": "^0.18.1",
+    "lucide-react": "^0.468.0",
+    "multer": "^2.0.2",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^6.2.108",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.2",
+    "concurrently": "^9.2.1",
+    "typescript": "^7.0.2",
+    "vite": "^7.1.3"
+  }
+}
