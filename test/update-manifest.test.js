@@ -3,8 +3,8 @@ import test from 'node:test';
 import { APP_ID, APP_VERSION_CODE, compareVersionCodes, isUpdateAvailable, normalizeUpdateManifest } from '../src/updateManifest.js';
 
 test('self-hosted update manifests resolve relative APK URLs and compare version codes', () => {
-  const manifest = normalizeUpdateManifest({ appId: APP_ID, version: '0.1.2', versionCode: 3, apkUrl: './RoleCommunity-0.1.2.apk', notes: '离线数据保留' }, 'https://updates.example.com/rolecommunity/update-manifest.json');
-  assert.equal(manifest.apkUrl, 'https://updates.example.com/rolecommunity/RoleCommunity-0.1.2.apk');
+  const manifest = normalizeUpdateManifest({ appId: APP_ID, version: '0.1.3', versionCode: 4, apkUrl: './RoleCommunity-0.1.3.apk', notes: '离线数据保留' }, 'https://updates.example.com/rolecommunity/update-manifest.json');
+  assert.equal(manifest.apkUrl, 'https://updates.example.com/rolecommunity/RoleCommunity-0.1.3.apk');
   assert.equal(isUpdateAvailable(manifest), true);
   assert.equal(compareVersionCodes(APP_VERSION_CODE, manifest.versionCode), 1);
   assert.equal(normalizeUpdateManifest({ appId: APP_ID, version: '0.1.0', versionCode: 1 }, 'https://updates.example.com/update-manifest.json').apkUrl, '');

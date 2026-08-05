@@ -1,8 +1,8 @@
 {
   "appId": "com.rolecommunity.app",
-  "version": "0.1.1",
-  "versionCode": 2,
-  "apkUrl": "https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.1/RoleCommunity-0.1.1-2.apk",
-  "notes": "内置 GitHub 更新地址，联网自动检查，离线继续使用",
+  "version": "0.1.2",
+  "versionCode": 3,
+  "apkUrl": "https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.2/RoleCommunity-0.1.2-3.apk",
+  "notes": "优化个人菜单的头像、统计与操作按钮对齐",
   "publishedAt": "2026-08-05T00:00:00.000Z"
 }

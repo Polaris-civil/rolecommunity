@@ -126,25 +126,26 @@ img { display: block; max-width: 100%; }
 .status-dot.is-live { background: var(--green); box-shadow: 0 0 0 3px #d7eee9; }
 .profile-row { width: 100%; padding: 10px 6px 2px; display: grid; grid-template-columns: 34px 1fr 16px; align-items: center; gap: 9px; border: 0; background: none; text-align: left; }
 .profile-row:hover { color: var(--ink); background: #f7f7f5; border-radius: 6px; }
-.profile-popover { width: 264px; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 16px 42px rgba(25, 28, 24, .14); }
-.profile-popover-sidebar { position: absolute; left: 14px; bottom: 64px; z-index: 70; }
-.profile-popover-topbar { position: absolute; top: 54px; right: 14px; z-index: 70; }
-.profile-popover-head { min-height: 42px; display: grid; grid-template-columns: 34px minmax(0, 1fr) 28px; align-items: center; gap: 9px; }
-.profile-popover-head > span { min-width: 0; display: grid; gap: 2px; }
+.profile-popover { width: min(280px, calc(100vw - 24px)); padding: 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #fff; box-shadow: 0 16px 42px rgba(25, 28, 24, .14); }
+.profile-popover-sidebar { position: absolute; left: 14px; bottom: 64px; width: calc(100% - 28px); z-index: 70; }
+.profile-popover-topbar { position: absolute; top: 54px; right: 28px; z-index: 70; }
+.profile-popover-head { min-height: 48px; display: grid; grid-template-columns: 48px minmax(0, 1fr) 28px; align-items: center; gap: 10px; }
+.profile-popover-head > span { min-width: 0; display: grid; align-content: center; gap: 3px; }
 .profile-popover-head strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .profile-popover-head small { color: #92958f; font-size: 10px; }
-.profile-popover-head .icon-button { width: 28px; height: 28px; }
-.profile-stats { margin: 13px 0 11px; padding: 10px 0; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #eeeeec; border-bottom: 1px solid #eeeeec; }
-.profile-stats span { display: grid; justify-items: center; gap: 2px; border-left: 1px solid #eeeeec; }
+.profile-popover-head .icon-button { width: 28px; height: 28px; justify-self: end; }
+.profile-stats { margin: 14px 0 12px; padding: 11px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #eeeeec; border-bottom: 1px solid #eeeeec; }
+.profile-stats span { min-width: 0; display: grid; justify-items: center; gap: 3px; border-left: 1px solid #eeeeec; }
 .profile-stats span:first-child { border-left: 0; }
-.profile-stats strong { font-size: 14px; }
-.profile-stats small { color: #92958f; font-size: 9px; }
+.profile-stats strong { line-height: 1; font-size: 14px; }
+.profile-stats small { overflow: hidden; color: #92958f; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .profile-actions { display: grid; gap: 3px; }
-.profile-actions button { min-height: 34px; padding: 0 7px; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 5px; color: #686b65; background: transparent; font-size: 11px; text-align: left; }
+.profile-actions button { width: 100%; min-height: 38px; padding: 0 9px; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 0; border-radius: 6px; color: #686b65; background: transparent; font-size: 11px; text-align: left; }
 .profile-actions button:hover { color: var(--ink); background: #f4f5f3; }
-.profile-actions button span { min-width: 0; flex: 1; }
-.profile-actions button small { color: #a0a29d; font-size: 9px; }
-.profile-note { margin: 11px 2px 1px; color: #999c96; font-size: 9px; line-height: 1.5; }
+.profile-actions button .tabler-icon { width: 17px; height: 17px; }
+.profile-actions button span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-actions button small { min-width: 16px; color: #a0a29d; font-size: 9px; text-align: right; }
+.profile-note { margin: 12px 2px 1px; padding-top: 10px; border-top: 1px solid #f0f1ee; color: #999c96; font-size: 9px; line-height: 1.55; }
 
 .workspace { min-height: 100vh; margin-left: 236px; }
 .topbar {
@@ -628,6 +629,7 @@ input[type="range"] { accent-color: var(--green); }
   .global-search kbd, .ai-mode, .notification-button { display: none; }
   .model-settings-button { display: inline-grid; }
   .mobile-profile { display: inline-grid; }
+  .profile-popover-topbar { top: 50px; right: 10px; }
   .page-content { padding: 24px 15px 38px; }
   .page-heading { margin-bottom: 18px; align-items: center; }
   .page-heading h1 { font-size: 23px; }
