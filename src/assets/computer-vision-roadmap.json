@@ -1,0 +1,308 @@
+[
+  {
+    "id": "cv-roadmap-01",
+    "order": 1,
+    "title": "01 数学基础：让模型推导不再靠背公式",
+    "category": "数学与优化",
+    "section": "基础能力 / 数学基础",
+    "tags": ["路线", "数学基础", "线性代数", "概率统计", "最优化"],
+    "content": "学习目标：掌握线性代数、矩阵运算、特征值与特征向量、概率统计、微积分、信息论、数值计算和最优化。\n\n关键词：矩阵分解、梯度、链式法则、熵、KL 散度、凸优化、拉格朗日乘子、数值稳定性。\n\n实践产出：手推线性回归、Softmax、交叉熵和反向传播，并用 NumPy 写出可运行版本。"
+  },
+  {
+    "id": "cv-roadmap-02",
+    "order": 2,
+    "title": "02 编程基础：Python 到 C++ 的视觉工程底座",
+    "category": "编程与工程基础",
+    "section": "基础能力 / 编程基础",
+    "tags": ["路线", "Python", "C++", "数据结构", "Linux"],
+    "content": "学习目标：熟练 Python、C++、NumPy、数据结构与算法、Linux、Shell、Git、CMake 和 CUDA 基础。\n\n关键词：内存与指针、并发、文件 IO、进程线程、复杂度、向量化、GPU kernel。\n\n实践产出：完成一个带 CMake 的 C++ 图像处理小工具，并用 Python 编写数据集检查和批处理脚本。"
+  },
+  {
+    "id": "cv-roadmap-03",
+    "order": 3,
+    "title": "03 图像处理基础：从像素到可解释的视觉算子",
+    "category": "图像处理与传统视觉",
+    "section": "基础能力 / 图像处理基础",
+    "tags": ["路线", "OpenCV", "图像滤波", "边缘检测", "几何变换"],
+    "content": "学习目标：理解颜色空间、卷积、滤波、边缘检测、直方图、频域分析、形态学、几何变换和图像增强。\n\n关键词：RGB/HSV、Sobel、Canny、傅里叶变换、腐蚀膨胀、仿射变换、透视变换、去噪和锐化。\n\n实践产出：用 OpenCV 做一套可视化实验，比较不同算子对噪声、边缘和纹理的影响。"
+  },
+  {
+    "id": "cv-roadmap-04",
+    "order": 4,
+    "title": "04 传统计算机视觉：把几何约束变成算法",
+    "category": "图像处理与传统视觉",
+    "section": "基础能力 / 传统计算机视觉",
+    "tags": ["路线", "SIFT", "ORB", "RANSAC", "相机标定"],
+    "content": "学习目标：掌握 OpenCV、SIFT、SURF、ORB、HOG、特征匹配、RANSAC、光流、单应性、相机标定、PnP 和双目视觉。\n\n关键词：关键点描述子、匹配过滤、内外参、畸变、极线约束、三角化。\n\n实践产出：完成一个从两张图片估计相机姿态并进行图像拼接的项目，记录失败案例。"
+  },
+  {
+    "id": "cv-roadmap-05",
+    "order": 5,
+    "title": "05 机器学习基础：建立可验证的基线",
+    "category": "机器学习基础",
+    "section": "基础能力 / 机器学习基础",
+    "tags": ["路线", "SVM", "决策树", "聚类", "评价指标"],
+    "content": "学习目标：掌握线性回归、逻辑回归、SVM、决策树、随机森林、聚类、降维、正则化、过拟合、交叉验证和评价指标。\n\n关键词：偏差方差、Precision、Recall、F1、ROC-AUC、类别不平衡、数据泄漏。\n\n实践产出：为一个图像分类任务建立传统特征 + 机器学习基线，并写出指标和错误分析报告。"
+  },
+  {
+    "id": "cv-roadmap-06",
+    "order": 6,
+    "title": "06 深度学习基础：从反向传播到稳定训练",
+    "category": "深度学习与骨干网络",
+    "section": "基础能力 / 深度学习基础",
+    "tags": ["路线", "PyTorch", "CNN", "损失函数", "训练技巧"],
+    "content": "学习目标：熟练 PyTorch，理解反向传播、CNN、Attention、Transformer、BatchNorm、Dropout、损失函数、优化器、学习率调度和数据增强。\n\n关键词：梯度消失、梯度爆炸、初始化、混合精度、迁移学习、实验记录。\n\n实践产出：从零训练一个小型分类器，做学习率、增强方式和归一化层的消融实验。"
+  },
+  {
+    "id": "cv-roadmap-07",
+    "order": 7,
+    "title": "07 视觉骨干网络：读懂特征提取器的取舍",
+    "category": "深度学习与骨干网络",
+    "section": "深度学习 / 视觉骨干网络",
+    "tags": ["路线", "ResNet", "MobileNet", "ConvNeXt", "ViT"],
+    "content": "学习目标：理解 AlexNet、VGG、ResNet、DenseNet、MobileNet、EfficientNet、ConvNeXt、ViT 和 Swin Transformer 的设计动机。\n\n关键词：残差连接、深度可分离卷积、注意力、窗口机制、参数量、FLOPs、感受野。\n\n实践产出：在同一数据集上比较 CNN 与 ViT 的精度、显存、延迟和收敛速度。"
+  },
+  {
+    "id": "cv-roadmap-08",
+    "order": 8,
+    "title": "08 图像分类：从迁移学习走向可泛化特征",
+    "category": "深度学习与骨干网络",
+    "section": "视觉任务 / 图像分类",
+    "tags": ["路线", "图像分类", "迁移学习", "对比学习", "知识蒸馏"],
+    "content": "学习目标：掌握迁移学习、细粒度分类、多标签分类、类别不平衡、度量学习、对比学习和知识蒸馏。\n\n关键词：冻结与解冻、采样策略、标签平滑、Triplet loss、InfoNCE、教师学生模型。\n\n实践产出：构建一个长尾分类实验，分别报告整体指标、少数类指标和混淆矩阵。"
+  },
+  {
+    "id": "cv-roadmap-09",
+    "order": 9,
+    "title": "09 目标检测：从候选框到实时感知",
+    "category": "目标检测与图像分割",
+    "section": "视觉任务 / 目标检测",
+    "tags": ["路线", "YOLO", "Faster R-CNN", "DETR", "小目标检测"],
+    "content": "学习目标：掌握 YOLO、Faster R-CNN、RetinaNet、FCOS、DETR、DINO、Anchor-Free、NMS、小目标检测和旋转目标检测。\n\n关键词：IoU、回归损失、正负样本、FPN、匹配策略、mAP、召回率、推理速度。\n\n实践产出：在一个自建数据集上完成标注、训练、错误分析和部署前的速度评测。"
+  },
+  {
+    "id": "cv-roadmap-10",
+    "order": 10,
+    "title": "10 图像分割：像素级理解的工程方法",
+    "category": "目标检测与图像分割",
+    "section": "视觉任务 / 图像分割",
+    "tags": ["路线", "语义分割", "实例分割", "U-Net", "SAM"],
+    "content": "学习目标：掌握语义分割、实例分割、全景分割、U-Net、DeepLab、Mask R-CNN、SegFormer、Mask2Former 和 SAM。\n\n关键词：Dice、mIoU、边界质量、跳跃连接、查询分割、提示分割。\n\n实践产出：比较一个轻量模型和一个基础模型在边界、遮挡和小目标上的表现。"
+  },
+  {
+    "id": "cv-roadmap-11",
+    "order": 11,
+    "title": "11 关键点与姿态估计：从热图到 6D Pose",
+    "category": "关键点、跟踪与视频分析",
+    "section": "视觉任务 / 关键点与姿态估计",
+    "tags": ["路线", "关键点", "姿态估计", "OpenPose", "PnP"],
+    "content": "学习目标：掌握人体、手部和人脸关键点，Heatmap、OpenPose、HRNet、6D Pose、PnP 和姿态跟踪。\n\n关键词：关键点可见性、热图解码、骨架拓扑、坐标系、姿态精度。\n\n实践产出：完成一个视频姿态 demo，并处理遮挡、抖动和关键点缺失。"
+  },
+  {
+    "id": "cv-roadmap-12",
+    "order": 12,
+    "title": "12 目标跟踪与视频分析：把单帧模型接进时间轴",
+    "category": "关键点、跟踪与视频分析",
+    "section": "视觉任务 / 跟踪与视频分析",
+    "tags": ["路线", "SORT", "DeepSORT", "ByteTrack", "行为识别"],
+    "content": "学习目标：掌握 SORT、DeepSORT、ByteTrack、BoT-SORT、ReID、单目标跟踪、多目标跟踪、视频目标分割和行为识别。\n\n关键词：卡尔曼滤波、匈牙利匹配、轨迹管理、ID switch、MOTA、流式推理。\n\n实践产出：将检测器接入多目标跟踪，统计漏检、误检、ID 切换和端到端延迟。"
+  },
+  {
+    "id": "cv-roadmap-13",
+    "order": 13,
+    "title": "13 OCR 与文档视觉：让机器看懂复杂版面",
+    "category": "OCR 与文档视觉",
+    "section": "视觉任务 / OCR 与文档视觉",
+    "tags": ["路线", "OCR", "CTC", "版面分析", "Document AI"],
+    "content": "学习目标：掌握文字检测、文字识别、CTC、CRNN、文本矫正、版面分析、表格识别、Document AI 和多模态文档理解。\n\n关键词：检测识别串联、倾斜文本、阅读顺序、表格结构、文档级评测。\n\n实践产出：制作一套包含扫描件、表格和低清图片的 OCR 测试集，并按场景分析错误。"
+  },
+  {
+    "id": "cv-roadmap-14",
+    "order": 14,
+    "title": "14 视觉基础模型：从预训练特征到开放世界",
+    "category": "视觉基础模型与多模态",
+    "section": "前沿方向 / 视觉基础模型",
+    "tags": ["路线", "Foundation Model", "MAE", "DINO", "开放世界"],
+    "content": "学习目标：理解 Foundation Model、自监督学习、MAE、DINO、JEPA、视觉预训练、Dense Feature、模型蒸馏、Open-Vocabulary Detection 和 Open-World Recognition。\n\n关键词：无标签预训练、密集特征、开放词汇、视觉 grounding、提示分割。\n\n实践产出：用冻结视觉编码器完成线性探针、少样本分类和开放词汇检索对比。"
+  },
+  {
+    "id": "cv-roadmap-15",
+    "order": 15,
+    "title": "15 视觉语言模型：图文对齐与视觉推理",
+    "category": "视觉基础模型与多模态",
+    "section": "前沿方向 / 视觉语言模型",
+    "tags": ["路线", "CLIP", "BLIP", "LLaVA", "VLM"],
+    "content": "学习目标：掌握 CLIP、BLIP、LLaVA、VLM、MLLM、图文对齐、视觉问答、图像描述、多模态指令微调、视觉推理、Grounding 和幻觉检测。\n\n关键词：对比学习、视觉编码器、投影层、指令数据、事实性评测。\n\n实践产出：做一个带引用区域的图像问答 demo，记录模型看错、漏看和编造的案例。"
+  },
+  {
+    "id": "cv-roadmap-16",
+    "order": 16,
+    "title": "16 视频基础模型：建模时间、事件和长视频",
+    "category": "视觉基础模型与多模态",
+    "section": "前沿方向 / 视频基础模型",
+    "tags": ["路线", "Video Transformer", "长视频", "Temporal Grounding", "视频问答"],
+    "content": "学习目标：理解 Video Transformer、时空建模、Video Tokenizer、长视频理解、Temporal Grounding、视频问答、视频事件定位和流式视频推理。\n\n关键词：帧采样、时间窗口、长上下文、事件边界、在线推理。\n\n实践产出：实现一个长视频检索或事件定位 pipeline，比较离线和流式方案的成本。"
+  },
+  {
+    "id": "cv-roadmap-17",
+    "order": 17,
+    "title": "17 生成式视觉：从 VAE、GAN 到 Diffusion",
+    "category": "生成式视觉",
+    "section": "前沿方向 / 生成式视觉",
+    "tags": ["路线", "VAE", "GAN", "Diffusion", "ControlNet"],
+    "content": "学习目标：掌握 VAE、GAN、Diffusion、DiT、Flow Matching、图像生成、视频生成、图像编辑、可控生成、ControlNet 和一致性模型。\n\n关键词：潜空间、噪声调度、条件控制、采样速度、生成质量评测。\n\n实践产出：完成一个可控图像编辑实验，比较条件强度、采样步数和一致性。"
+  },
+  {
+    "id": "cv-roadmap-18",
+    "order": 18,
+    "title": "18 三维计算机视觉：从多视图几何到 3D-LLM",
+    "category": "三维、四维与空间智能",
+    "section": "前沿方向 / 三维计算机视觉",
+    "tags": ["路线", "点云", "RGB-D", "LiDAR", "三维重建"],
+    "content": "学习目标：掌握多视图几何、深度估计、点云、RGB-D、LiDAR、三维检测、三维分割、三维重建、Scene Graph 和 3D Visual Grounding。\n\n关键词：坐标变换、深度、点云特征、体素、三维框、场景关系。\n\n实践产出：从 RGB-D 或多视图数据构建一个小型三维重建和可视化 pipeline。"
+  },
+  {
+    "id": "cv-roadmap-19",
+    "order": 19,
+    "title": "19 空间智能与三维基础模型：让模型理解相机和世界",
+    "category": "三维、四维与空间智能",
+    "section": "前沿方向 / 空间智能",
+    "tags": ["路线", "Spatial Intelligence", "Camera Pose", "VGGT", "3D Foundation Model"],
+    "content": "学习目标：理解 Spatial Intelligence、Camera Pose、Point Map、Feed-Forward 3D Reconstruction、3D Foundation Model、VGGT、3D-LLM 和空间推理。\n\n关键词：相机位姿、点图、几何一致性、空间关系、开放场景。\n\n实践产出：使用一个公开模型完成多视图位姿或点图预测，并对尺度、遮挡和视角变化做评测。"
+  },
+  {
+    "id": "cv-roadmap-20",
+    "order": 20,
+    "title": "20 神经渲染与 4D 视觉：把场景放进时间里",
+    "category": "三维、四维与空间智能",
+    "section": "前沿方向 / 神经渲染与 4D 视觉",
+    "tags": ["路线", "NeRF", "Gaussian Splatting", "4DGS", "Scene Flow"],
+    "content": "学习目标：掌握 NeRF、3D Gaussian Splatting、Novel View Synthesis、可微渲染、Inverse Rendering、Dynamic NeRF、4DGS、Scene Flow 和 4D Reconstruction。\n\n关键词：射线采样、密度场、显式高斯、动态场景、时序一致性。\n\n实践产出：重建一个小场景，比较 NeRF 与 Gaussian Splatting 的训练时间、渲染质量和动态扩展难度。"
+  },
+  {
+    "id": "cv-roadmap-21",
+    "order": 21,
+    "title": "21 世界模型：预测未来状态而不是只识别当前帧",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "前沿方向 / 世界模型",
+    "tags": ["路线", "World Model", "RSSM", "JEPA", "未来状态预测"],
+    "content": "学习目标：理解 World Model、RSSM、Latent Dynamics、JEPA、V-JEPA 2、Genie、Cosmos、未来状态预测、Action-Conditioned Prediction、Counterfactual Rollout 和 Imagination。\n\n关键词：潜变量动力学、动作条件、长时序一致性、物理一致性、反事实 rollout。\n\n实践产出：在简单环境中训练一个 latent dynamics 模型，比较预测 horizon 增长后的误差。"
+  },
+  {
+    "id": "cv-roadmap-22",
+    "order": 22,
+    "title": "22 强化学习与规划：把视觉预测连接到行动",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "前沿方向 / 强化学习与规划",
+    "tags": ["路线", "DQN", "PPO", "SAC", "MPC"],
+    "content": "学习目标：掌握 DQN、PPO、SAC、Model-Based RL、Dreamer、模仿学习、行为克隆、离线强化学习、MPC 和轨迹优化。\n\n关键词：状态、动作、奖励、策略、价值、探索、规划、闭环评测。\n\n实践产出：在一个仿真任务里比较行为克隆、PPO 和基于模型规划的稳定性与样本效率。"
+  },
+  {
+    "id": "cv-roadmap-23",
+    "order": 23,
+    "title": "23 具身智能与 VLA：从看见到完成任务",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "前沿方向 / 具身智能与 VLA",
+    "tags": ["路线", "Embodied AI", "VLA", "OpenVLA", "机器人操作"],
+    "content": "学习目标：理解 Embodied AI、Vision-Language-Action、Embodied Reasoning、OpenVLA、π0、Action Tokenization、Diffusion Policy、机器人操作、跨本体迁移和长任务规划。\n\n关键词：视觉观测、语言目标、动作表示、示范数据、任务分解、闭环控制。\n\n实践产出：在仿真环境中完成一个从语言指令到抓取动作的最小闭环。"
+  },
+  {
+    "id": "cv-roadmap-24",
+    "order": 24,
+    "title": "24 Physical AI：让感知尊重物理和安全边界",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "前沿方向 / Physical AI",
+    "tags": ["路线", "Physical AI", "Affordance", "抓取", "安全"],
+    "content": "学习目标：掌握物理推理、接触建模、碰撞预测、Affordance、抓取姿态估计、可操作部位检测、视觉触觉融合、因果推理、物理约束学习和机器人安全。\n\n关键词：接触点、可达性、碰撞、摩擦、风险、约束优化。\n\n实践产出：为一个抓取任务定义可操作部位和安全约束，并验证失败案例。"
+  },
+  {
+    "id": "cv-roadmap-25",
+    "order": 25,
+    "title": "25 生成式数据引擎：解决长尾和标注成本",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "工程能力 / 生成式数据引擎",
+    "tags": ["路线", "Synthetic Data", "自动标注", "Sim2Real", "Isaac Sim"],
+    "content": "学习目标：掌握 Synthetic Data、自动标注、可控场景生成、长尾样本生成、Domain Randomization、Sim2Real、数字孪生、神经仿真器、Isaac Sim、Omniverse 和 CARLA。\n\n关键词：域差异、合成标注、场景参数化、仿真到真实、覆盖率。\n\n实践产出：生成一组可控长尾样本，并用真实验证集衡量合成数据是否真的带来收益。"
+  },
+  {
+    "id": "cv-roadmap-26",
+    "order": 26,
+    "title": "26 自动驾驶视觉：从 BEV 感知到闭环规划",
+    "category": "自动驾驶与多传感器融合",
+    "section": "垂直方向 / 自动驾驶视觉",
+    "tags": ["路线", "自动驾驶", "BEV", "Occupancy", "轨迹预测"],
+    "content": "学习目标：掌握 BEV、多传感器融合、3D 目标检测、Occupancy Network、Occupancy Forecasting、轨迹预测、HD Map、端到端驾驶和感知预测规划一体化。\n\n关键词：鸟瞰图、时空融合、占用预测、地图约束、闭环仿真。\n\n实践产出：在公开数据或仿真环境中画出感知、预测、规划的接口和指标链路。"
+  },
+  {
+    "id": "cv-roadmap-27",
+    "order": 27,
+    "title": "27 多模态传感器融合：让不同传感器互相校验",
+    "category": "自动驾驶与多传感器融合",
+    "section": "工程能力 / 多模态传感器融合",
+    "tags": ["路线", "RGB-D", "LiDAR", "毫米波雷达", "跨模态对齐"],
+    "content": "学习目标：掌握 RGB-D、LiDAR、毫米波雷达、事件相机、热成像、音频视觉、视觉触觉、时空标定、跨模态对齐和缺失模态鲁棒性。\n\n关键词：外参、时间同步、坐标变换、融合层级、传感器失效。\n\n实践产出：画出多传感器坐标系和同步方案，并设计一个缺失模态下的降级测试。"
+  },
+  {
+    "id": "cv-roadmap-28",
+    "order": 28,
+    "title": "28 训练与数据工程：模型效果首先取决于数据闭环",
+    "category": "数据工程、部署与 MLOps",
+    "section": "工程能力 / 训练与数据工程",
+    "tags": ["路线", "数据采集", "标注", "数据版本", "实验管理"],
+    "content": "学习目标：掌握数据采集、标注规范、数据清洗、数据版本管理、困难样本挖掘、类别平衡、迁移学习、混合精度、分布式训练、实验管理和消融实验。\n\n关键词：数据质量、版本可追溯、采样、可复现实验、错误闭环。\n\n实践产出：建立数据集版本、实验配置、指标和错误样本之间可追踪的最小流程。"
+  },
+  {
+    "id": "cv-roadmap-29",
+    "order": 29,
+    "title": "29 模型部署与优化：从离线精度到端侧延迟",
+    "category": "数据工程、部署与 MLOps",
+    "section": "工程能力 / 模型部署与优化",
+    "tags": ["路线", "ONNX", "TensorRT", "量化", "边缘部署"],
+    "content": "学习目标：掌握 ONNX、TensorRT、OpenVINO、CUDA、量化、剪枝、算子融合、Token Pruning、稀疏注意力、边缘部署、流式推理和模型服务化。\n\n关键词：算子支持、FP16/INT8、吞吐、延迟、显存、性能回归。\n\n实践产出：把一个检测或分类模型导出并部署，记录精度、首帧延迟、稳定延迟和峰值显存。"
+  },
+  {
+    "id": "cv-roadmap-30",
+    "order": 30,
+    "title": "30 工程化与 MLOps：让模型能被稳定使用",
+    "category": "数据工程、部署与 MLOps",
+    "section": "工程能力 / 工程化与 MLOps",
+    "tags": ["路线", "Docker", "FastAPI", "测试", "监控"],
+    "content": "学习目标：掌握 Docker、FastAPI、REST API、单元测试、性能分析、GPU 显存优化、日志监控、CI/CD、模型版本管理和数据漂移监控。\n\n关键词：服务契约、健康检查、灰度发布、回滚、线上指标、漂移告警。\n\n实践产出：把视觉模型包装成可测试的 API，配套日志、版本号和一个简单的回归测试集。"
+  },
+  {
+    "id": "cv-roadmap-31",
+    "order": 31,
+    "title": "31 可信视觉：知道模型什么时候可能错",
+    "category": "项目、可信视觉与求职",
+    "section": "工程能力 / 可信视觉",
+    "tags": ["路线", "OOD Detection", "不确定性", "鲁棒性", "安全"],
+    "content": "学习目标：掌握 OOD Detection、开放集识别、不确定性估计、置信度校准、对抗鲁棒性、幻觉检测、物理一致性评测和时序一致性评测。\n\n关键词：拒答、校准曲线、分布外样本、风险分层、误报漏报代价。\n\n实践产出：为一个视觉任务设计拒答策略，并报告不同阈值下的覆盖率和风险。"
+  },
+  {
+    "id": "cv-roadmap-32",
+    "order": 32,
+    "title": "32 垂直应用：把通用方法落到真实问题",
+    "category": "项目、可信视觉与求职",
+    "section": "垂直方向 / 应用选择",
+    "tags": ["路线", "工业质检", "医学影像", "遥感视觉", "机器人"],
+    "content": "学习目标：了解工业质检、自动驾驶、机器人、医学影像、遥感视觉、智慧交通、安防、人脸识别、AR/VR 和内容生成等方向的典型约束。\n\n关键词：数据分布、标注成本、合规、安全、实时性、可解释性、业务指标。\n\n实践产出：选定一个垂直场景，写清输入、输出、失败代价、数据来源和部署边界。"
+  },
+  {
+    "id": "cv-roadmap-33",
+    "order": 33,
+    "title": "33 项目与求职能力：把实验讲成可信的工程故事",
+    "category": "项目、可信视觉与求职",
+    "section": "职业能力 / 项目与求职",
+    "tags": ["路线", "论文复现", "Baseline", "错误分析", "作品集"],
+    "content": "学习目标：掌握论文复现、数据集构建、Baseline 设计、指标设计、错误分析、消融实验、模型压缩、端到端部署、技术文档、开源项目和作品集表达。\n\n关键词：问题定义、实验对照、可复现、失败复盘、指标与业务目标。\n\n实践产出：整理一个从数据、训练、评测到部署的完整项目 README，并准备 5 分钟技术讲解。"
+  },
+  {
+    "id": "cv-roadmap-34",
+    "order": 34,
+    "title": "34 推荐主线：从 Python 到端侧多模态部署",
+    "category": "项目、可信视觉与求职",
+    "section": "路线总览 / 推荐学习主线",
+    "tags": ["路线", "学习顺序", "端侧部署", "多模态", "前沿方向"],
+    "content": "推荐学习主线：Python/C++ → OpenCV → PyTorch/CNN → 检测与分割 → Transformer → 视觉基础模型 → VLM 与视频理解 → 3D/4D 视觉 → 世界模型 → VLA 与具身智能 → TensorRT 部署。\n\n现阶段优先级：开放世界视觉、视频基础模型、3D/4D 空间智能、世界模型、VLA、Physical AI、端侧多模态部署。\n\n使用方法：每一阶段都要配一个可运行项目、一个错误分析记录和一次部署或性能测量。"
+  }
+]

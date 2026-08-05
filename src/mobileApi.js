@@ -28,6 +28,24 @@ const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
 const DEFAULT_MODEL = 'deepseek-v4-flash';
 const legacyTitlePattern = /项目相关知识点|基础知识点|通用知识点|面经汇总|知识点总结|学习笔记/;
 const postTypeKey = (value) => ({ 教程帖: 'tutorial', 面试帖: 'interview', 问题帖: 'question' }[value] || 'discussion');
+const legacyDemoKnowledgeIds = new Set([
+  'know-event-loop', 'know-index', 'know-cache', 'know-react-state',
+  'know-http-cache', 'know-idempotent', 'know-btree', 'know-rag',
+]);
+const legacyDemoPostIds = new Set(['post-event-loop', 'post-index', 'post-cache', 'post-react-state']);
+const legacyRoleTags = {
+  'role-student': ['前端', '算法', '面试'],
+  'role-beginner': ['AI', '算法', '面试', '学习'],
+  'role-architect': ['架构', '数据库', '后端'],
+  'role-interviewer': ['面试', '系统设计', 'JavaScript'],
+  'role-product': ['产品', 'AI', '效率'],
+};
+const cvCategories = new Set([
+  '数学与优化', '编程与工程基础', '图像处理与传统视觉', '机器学习基础',
+  '深度学习与骨干网络', '目标检测与图像分割', '关键点、跟踪与视频分析', 'OCR 与文档视觉',
+  '视觉基础模型与多模态', '生成式视觉', '三维、四维与空间智能', '世界模型、强化学习与具身智能',
+  '自动驾驶与多传感器融合', '数据工程、部署与 MLOps', '项目、可信视觉与求职',
+]);
 export const isMobileApp = Capacitor.isNativePlatform();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -55,7 +73,7 @@ function readStore() {
   try {
     const parsed = JSON.parse(saved || legacySaved);
     if (Array.isArray(parsed.roles) && Array.isArray(parsed.knowledge) && Array.isArray(parsed.posts)) {
-      const next = refreshLegacyPostTitles(ensureProfiles(addStarterRoles(addBuiltinKnowledge(parsed))));
+      const next = refreshLegacyPostTitles(ensureProfiles(addStarterRoles(removeStaleDemoPosts(addBuiltinKnowledge(migrateLegacyDemoData(parsed))))));
       storage()?.setItem(STORE_KEY, JSON.stringify(next));
       return next;
     }
@@ -86,6 +104,45 @@ function addStarterRoles(store) {
   const beginnerRole = createSeedData().roles.find((role) => role.id === 'role-beginner');
   if (!beginnerRole || store.roles.some((role) => role.id === beginnerRole.id)) return store;
   return { ...store, roles: [...store.roles, beginnerRole] };
+}
+
+function migrateLegacyDemoData(store) {
+  const seed = createSeedData();
+  const hasLegacyDemo = store.knowledge.some((item) => legacyDemoKnowledgeIds.has(item.id))
+    || store.posts.some((post) => legacyDemoPostIds.has(post.id));
+  if (!hasLegacyDemo) return store;
+  const next = {
+    ...store,
+    knowledge: store.knowledge.filter((item) => !legacyDemoKnowledgeIds.has(item.id)),
+    posts: store.posts.filter((post) => !legacyDemoPostIds.has(post.id)),
+  };
+  for (const item of seed.knowledge) {
+    if (!next.knowledge.some((existing) => existing.id === item.id)) next.knowledge.push(item);
+  }
+  for (const post of seed.posts) {
+    if (!next.posts.some((existing) => existing.id === post.id)) next.posts.push(post);
+  }
+  next.roles = next.roles.map((role) => {
+    const canonical = seed.roles.find((item) => item.id === role.id);
+    return canonical && JSON.stringify(role.tags || []) === JSON.stringify(legacyRoleTags[role.id] || [])
+      ? canonical
+      : role;
+  });
+  next.activity = next.activity
+    .filter((item) => !(item.type === 'post' && /项目相关知识点|基础知识点|数据库索引|RAG 检索|自然语言处理|Canny/.test(item.text || '')))
+    .map((item) => item.type === 'import' && /AI 应用实践/.test(item.text || '')
+      ? { ...item, text: '已整理计算机视觉算法工程师知识路线' }
+      : item);
+  return next;
+}
+
+function removeStaleDemoPosts(store) {
+  const validKnowledgeIds = new Set(store.knowledge.map((item) => item.id));
+  return {
+    ...store,
+    posts: store.posts.filter((post) => !(post.generationSource === 'demo'
+      && (!validKnowledgeIds.has(post.knowledgeId) || !cvCategories.has(post.category)))),
+  };
 }
 
 function refreshLegacyPostTitles(store) {

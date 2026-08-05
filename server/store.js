@@ -16,6 +16,63 @@ let builtInChecked = false;
 const knowledgeKey = (item) => `${item.source || ''}\n${String(item.content || '').replace(/\s+/g, '')}`;
 const legacyTitlePattern = /项目相关知识点|基础知识点|通用知识点|面经汇总|知识点总结|学习笔记/;
 const postTypeKey = (value) => ({ 教程帖: 'tutorial', 面试帖: 'interview', 问题帖: 'question' }[value] || 'discussion');
+const legacyDemoKnowledgeIds = new Set([
+  'know-event-loop', 'know-index', 'know-cache', 'know-react-state',
+  'know-http-cache', 'know-idempotent', 'know-btree', 'know-rag',
+]);
+const legacyDemoPostIds = new Set(['post-event-loop', 'post-index', 'post-cache', 'post-react-state']);
+const legacyRoleTags = {
+  'role-student': ['前端', '算法', '面试'],
+  'role-beginner': ['AI', '算法', '面试', '学习'],
+  'role-architect': ['架构', '数据库', '后端'],
+  'role-interviewer': ['面试', '系统设计', 'JavaScript'],
+  'role-product': ['产品', 'AI', '效率'],
+};
+const cvCategories = new Set([
+  '数学与优化', '编程与工程基础', '图像处理与传统视觉', '机器学习基础',
+  '深度学习与骨干网络', '目标检测与图像分割', '关键点、跟踪与视频分析', 'OCR 与文档视觉',
+  '视觉基础模型与多模态', '生成式视觉', '三维、四维与空间智能', '世界模型、强化学习与具身智能',
+  '自动驾驶与多传感器融合', '数据工程、部署与 MLOps', '项目、可信视觉与求职',
+]);
+
+function migrateLegacyDemoData(store) {
+  const seed = createSeedData();
+  let changed = false;
+  if (store.knowledge.some((item) => legacyDemoKnowledgeIds.has(item.id)) || store.posts.some((post) => legacyDemoPostIds.has(post.id))) {
+    store.knowledge = store.knowledge.filter((item) => !legacyDemoKnowledgeIds.has(item.id));
+    store.posts = store.posts.filter((post) => !legacyDemoPostIds.has(post.id));
+    for (const item of seed.knowledge) {
+      if (!store.knowledge.some((existing) => existing.id === item.id)) store.knowledge.push(item);
+    }
+    for (const post of seed.posts) {
+      if (!store.posts.some((existing) => existing.id === post.id)) store.posts.push(post);
+    }
+    changed = true;
+  }
+  for (const canonical of seed.roles) {
+    const existing = store.roles.find((role) => role.id === canonical.id);
+    if (!existing || JSON.stringify(existing.tags || []) !== JSON.stringify(legacyRoleTags[canonical.id] || [])) continue;
+    Object.assign(existing, canonical);
+    changed = true;
+  }
+  const activitySnapshot = JSON.stringify(store.activity);
+  store.activity = store.activity
+    .filter((item) => !(item.type === 'post' && /项目相关知识点|基础知识点|数据库索引|RAG 检索|自然语言处理|Canny/.test(item.text || '')))
+    .map((item) => item.type === 'import' && /AI 应用实践/.test(item.text || '')
+      ? { ...item, text: '已整理计算机视觉算法工程师知识路线' }
+      : item);
+  if (JSON.stringify(store.activity) !== activitySnapshot) changed = true;
+  return changed;
+}
+
+function removeStaleDemoPosts(store) {
+  const validKnowledgeIds = new Set(store.knowledge.map((item) => item.id));
+  const retained = store.posts.filter((post) => !(post.generationSource === 'demo'
+    && (!validKnowledgeIds.has(post.knowledgeId) || !cvCategories.has(post.category))));
+  if (retained.length === store.posts.length) return false;
+  store.posts = retained;
+  return true;
+}
 
 async function ensureStore() {
   await mkdir(dataDir, { recursive: true });
@@ -25,7 +82,7 @@ async function ensureStore() {
       const store = JSON.parse(contents);
       const builtins = createBuiltinKnowledge();
       const builtinById = new Map(builtins.map((item) => [item.id, item]));
-      let changed = false;
+      let changed = migrateLegacyDemoData(store);
       for (const post of store.posts) {
         if (!post.authorProfile || post.authorProfile.profileVersion !== AVATAR_LIBRARY_VERSION) {
           post.authorProfile = profileForSeed(post.id);
@@ -79,6 +136,7 @@ async function ensureStore() {
           }
         }
       }
+      changed = removeStaleDemoPosts(store) || changed;
       for (const post of store.posts) {
         if (post.generationSource !== 'demo' || !legacyTitlePattern.test(post.title)) continue;
         const knowledge = store.knowledge.find((item) => item.id === post.knowledgeId);

@@ -78,9 +78,13 @@ test('question comments are routed to a relevant different role', () => {
   assert.equal(responder.id, 'answerer');
 });
 
-test('built-in interview knowledge is preprocessed into organized volumes', () => {
-  assert.ok(builtinKnowledge.length > 700);
-  assert.deepEqual(new Set(builtinKnowledge.map((entry) => entry.part)), new Set(['上册', '中册', '下册']));
-  assert.ok(builtinKnowledge.every((entry) => entry.source && entry.group && entry.section && !['目录'].includes(entry.title)));
-  assert.ok(builtinKnowledge.some((entry) => entry.title.includes('·')));
+test('built-in knowledge is organized around the computer vision roadmap', () => {
+  assert.equal(builtinKnowledge.length, 423);
+  assert.ok(builtinKnowledge.filter((entry) => entry.kind === 'roadmap').length >= 34);
+  assert.ok(builtinKnowledge.filter((entry) => entry.kind === 'github').length >= 20);
+  assert.ok(builtinKnowledge.filter((entry) => entry.kind === 'source').length >= 300);
+  assert.deepEqual(new Set(builtinKnowledge.map((entry) => entry.part)), new Set(['路线总览', '开源索引', '上册', '中册', '下册']));
+  assert.ok(builtinKnowledge.every((entry) => entry.source && entry.group && entry.section && entry.category && entry.tags?.length && !['目录'].includes(entry.title)));
+  assert.ok(builtinKnowledge.some((entry) => entry.category === '目标检测与图像分割'));
+  assert.ok(builtinKnowledge.some((entry) => entry.url?.startsWith('https://github.com/')));
 });

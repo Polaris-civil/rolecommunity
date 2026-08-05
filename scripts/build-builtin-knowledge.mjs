@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractKnowledge } from '../server/content.js';
+import { classifyCvEntry } from './cv-knowledge.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceFiles = [
@@ -9,6 +10,8 @@ const sourceFiles = [
   { file: 'src/assets/ai-algorithm-interviews.md', part: '中册', source: 'AI算法岗面经-武林秘籍中册.md' },
   { file: 'src/assets/ai-algorithm-interviews-vol3.md', part: '下册', source: 'AI算法岗面经-武林秘籍下册.md' },
 ];
+const roadmapFile = 'src/assets/computer-vision-roadmap.json';
+const resourcesFile = 'src/assets/github-computer-vision-resources.json';
 
 const genericTitles = new Set([
   '面经汇总资料',
@@ -56,7 +59,7 @@ function firstUsefulLine(content) {
     .find((line) => line && !/^来源|整理|点击进入|网页链接/.test(line)) || '';
 }
 
-const entries = [];
+const sourceEntries = [];
 for (const source of sourceFiles) {
   const text = await readFile(path.join(root, source.file), 'utf8');
   const extracted = extractKnowledge(text, source.source);
@@ -69,29 +72,74 @@ for (const source of sourceFiles) {
     const sectionParts = String(entry.section || '').split(' / ').filter(Boolean);
     const company = sectionParts[1] || entry.group || '综合题库';
     const section = sectionParts.slice(2).join(' / ') || sectionParts.at(-1) || '综合';
+    const classification = classifyCvEntry({ ...entry, content, title, section, group: company });
+    if (!classification.relevant) continue;
     const baseTitle = title.replace(/（续）$/, '').trim();
     const needsContextTitle = genericTitles.has(baseTitle) || title.endsWith('（续）');
     const displayTitle = needsContextTitle
       ? `${baseTitle} · ${clip(firstUsefulLine(content), 34) || '重点整理'}`
       : baseTitle;
-    const stableIndex = String(entries.length + 1).padStart(4, '0');
+    const stableIndex = String(sourceEntries.length + 1).padStart(4, '0');
+    const topic = classification.topic;
     const item = {
-      id: `builtin-ai-v2-${stableIndex}`,
+      id: `builtin-ai-cv-source-${stableIndex}`,
       title: displayTitle,
       content,
-      category: 'AI',
-      tags: [...new Set(['AI算法岗', '面试', ...(entry.tags || [])])].slice(0, 6),
-      group: company,
-      section,
+      category: topic.label,
+      tags: [...new Set(['计算机视觉', 'CV面试', ...topic.tags, ...(entry.tags || [])])].slice(0, 8),
+      group: `CV面经 · ${company}`,
+      section: `${topic.label} / ${section}`,
       company,
       part: source.part,
       source: source.source,
+      topicId: topic.id,
+      kind: 'source',
       status: 'pending',
       createdAt: '2026-08-01T00:00:00.000Z',
     };
-    entries.push(item);
+    sourceEntries.push(item);
   }
 }
 
+const [roadmap, resources] = await Promise.all([
+  readFile(path.join(root, roadmapFile), 'utf8').then(JSON.parse),
+  readFile(path.join(root, resourcesFile), 'utf8').then(JSON.parse),
+]);
+
+function normalizeCuratedEntry(entry, { kind, part, source, group }) {
+  const id = `builtin-ai-${entry.id}`;
+  return {
+    id,
+    title: entry.title,
+    content: normalizeContent(entry.content),
+    category: entry.category,
+    tags: [...new Set(['计算机视觉', ...(entry.tags || [])])].slice(0, 8),
+    group,
+    section: entry.section,
+    company: group,
+    part,
+    source,
+    kind,
+    order: entry.order,
+    ...(entry.url ? { url: entry.url } : {}),
+    ...(entry.license ? { license: entry.license } : {}),
+    status: 'pending',
+    createdAt: '2026-08-01T00:00:00.000Z',
+  };
+}
+
+const roadmapEntries = roadmap.map((entry) => normalizeCuratedEntry(entry, {
+  kind: 'roadmap',
+  part: '路线总览',
+  source: '计算机视觉算法工程师学习路线',
+  group: 'CV算法工程师路线',
+}));
+const resourceEntries = resources.map((entry) => normalizeCuratedEntry(entry, {
+  kind: 'github',
+  part: '开源索引',
+  source: 'GitHub 官方开源仓库索引',
+  group: 'GitHub 开源资源',
+}));
+const entries = [...roadmapEntries, ...resourceEntries, ...sourceEntries];
 await writeFile(path.join(root, 'src/assets/ai-algorithm-knowledge.json'), `${JSON.stringify(entries, null, 2)}\n`);
-console.log(`Built ${entries.length} knowledge entries from ${sourceFiles.length} volumes.`);
+console.log(`Built ${entries.length} CV knowledge entries: ${roadmapEntries.length} roadmap, ${resourceEntries.length} GitHub resources, ${sourceEntries.length} filtered source entries from ${sourceFiles.length} volumes.`);

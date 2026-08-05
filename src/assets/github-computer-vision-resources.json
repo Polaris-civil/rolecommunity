@@ -1,0 +1,233 @@
+[
+  {
+    "id": "github-cv-awesome",
+    "order": 1,
+    "title": "GitHub 资源总览：Awesome Computer Vision",
+    "category": "项目、可信视觉与求职",
+    "section": "开源资源 / 资源地图",
+    "tags": ["GitHub", "资源地图", "论文", "数据集"],
+    "url": "https://github.com/jbhuang0604/awesome-computer-vision",
+    "license": "仓库未声明统一许可证；各下游项目按各自许可证使用",
+    "content": "用途：按任务、论文、数据集和工具快速寻找下一步学习材料。\n\n建议：把它当作索引，不要直接把第三方代码当成自己的成果；真正使用前检查目标仓库的许可证、权重条款和数据集条款。\n\n仓库： https://github.com/jbhuang0604/awesome-computer-vision"
+  },
+  {
+    "id": "github-cv-opencv",
+    "order": 2,
+    "title": "OpenCV：图像处理和传统视觉工程入口",
+    "category": "图像处理与传统视觉",
+    "section": "开源资源 / 图像处理",
+    "tags": ["GitHub", "OpenCV", "C++", "Python"],
+    "url": "https://github.com/opencv/opencv",
+    "license": "Apache-2.0",
+    "content": "用途：学习图像读写、滤波、几何变换、特征、相机标定和跨语言工程接口。\n\n适合路线：图像处理基础、传统计算机视觉、C++/Python 工程。\n\n仓库： https://github.com/opencv/opencv\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-torchvision",
+    "order": 3,
+    "title": "TorchVision：PyTorch 视觉数据与模型基线",
+    "category": "深度学习与骨干网络",
+    "section": "开源资源 / PyTorch 生态",
+    "tags": ["GitHub", "PyTorch", "数据增强", "模型基线"],
+    "url": "https://github.com/pytorch/vision",
+    "license": "BSD-3-Clause",
+    "content": "用途：提供常用数据集、变换、预训练模型和视觉任务参考实现。\n\n适合路线：深度学习基础、分类、检测、分割和迁移学习。\n\n仓库： https://github.com/pytorch/vision\n许可证：BSD-3-Clause。"
+  },
+  {
+    "id": "github-cv-mmdetection",
+    "order": 4,
+    "title": "MMDetection：检测算法实验平台",
+    "category": "目标检测与图像分割",
+    "section": "开源资源 / 检测与分割",
+    "tags": ["GitHub", "目标检测", "YOLO", "DETR", "Benchmark"],
+    "url": "https://github.com/open-mmlab/mmdetection",
+    "license": "Apache-2.0",
+    "content": "用途：对照阅读两阶段、单阶段、Transformer 检测器，复现实验并比较配置、数据和指标。\n\n适合路线：目标检测、训练工程、错误分析和模型基线。\n\n仓库： https://github.com/open-mmlab/mmdetection\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-mmsegmentation",
+    "order": 5,
+    "title": "MMSegmentation：语义分割和全景分割基线",
+    "category": "目标检测与图像分割",
+    "section": "开源资源 / 检测与分割",
+    "tags": ["GitHub", "语义分割", "Mask2Former", "mIoU"],
+    "url": "https://github.com/open-mmlab/mmsegmentation",
+    "license": "Apache-2.0",
+    "content": "用途：查看 U-Net、DeepLab、SegFormer 等分割模型的统一训练与评测方式。\n\n适合路线：语义分割、指标、配置管理和实验对照。\n\n仓库： https://github.com/open-mmlab/mmsegmentation\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-ultralytics",
+    "order": 6,
+    "title": "Ultralytics：实时检测、分割和姿态实践入口",
+    "category": "目标检测与图像分割",
+    "section": "开源资源 / 实时视觉",
+    "tags": ["GitHub", "YOLO", "实时推理", "姿态估计"],
+    "url": "https://github.com/ultralytics/ultralytics",
+    "license": "AGPL-3.0；商业使用需另行确认许可",
+    "content": "用途：快速完成实时检测、分割、姿态和跟踪原型，并观察数据、训练和导出流程。\n\n注意：仓库采用 AGPL-3.0，闭源商业产品不能只看代码可用性，必须先核对许可证和商业授权。\n\n仓库： https://github.com/ultralytics/ultralytics"
+  },
+  {
+    "id": "github-cv-groundingdino",
+    "order": 7,
+    "title": "Grounding DINO：开放词汇检测和视觉 grounding",
+    "category": "视觉基础模型与多模态",
+    "section": "开源资源 / 开放世界视觉",
+    "tags": ["GitHub", "Grounding", "开放词汇", "目标检测"],
+    "url": "https://github.com/IDEA-Research/GroundingDINO",
+    "license": "Apache-2.0",
+    "content": "用途：理解文字查询如何与检测框对齐，作为开放词汇检测和提示式视觉应用的实验入口。\n\n适合路线：开放世界视觉、Visual Grounding、多模态。\n\n仓库： https://github.com/IDEA-Research/GroundingDINO\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-sam2",
+    "order": 8,
+    "title": "SAM 2：图片与视频的提示式分割",
+    "category": "目标检测与图像分割",
+    "section": "开源资源 / 基础模型",
+    "tags": ["GitHub", "SAM", "视频分割", "提示分割"],
+    "url": "https://github.com/facebookresearch/sam2",
+    "license": "Apache-2.0",
+    "content": "用途：体验提示式图像分割和视频目标分割，观察提示、记忆和时序传播如何影响结果。\n\n适合路线：分割、视频分析、视觉基础模型。\n\n仓库： https://github.com/facebookresearch/sam2\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-clip",
+    "order": 9,
+    "title": "OpenAI CLIP：图文对齐的经典基线",
+    "category": "视觉基础模型与多模态",
+    "section": "开源资源 / 多模态",
+    "tags": ["GitHub", "CLIP", "图文对齐", "零样本分类"],
+    "url": "https://github.com/openai/CLIP",
+    "license": "MIT",
+    "content": "用途：理解图像编码器、文本编码器和对比学习如何支持零样本分类与图文检索。\n\n适合路线：视觉基础模型、视觉语言模型和少样本迁移。\n\n仓库： https://github.com/openai/CLIP\n许可证：MIT；模型权重和数据仍需按项目说明使用。"
+  },
+  {
+    "id": "github-cv-dinov2",
+    "order": 10,
+    "title": "DINOv2：自监督视觉特征基线",
+    "category": "视觉基础模型与多模态",
+    "section": "开源资源 / 自监督学习",
+    "tags": ["GitHub", "DINOv2", "自监督", "Dense Feature"],
+    "url": "https://github.com/facebookresearch/dinov2",
+    "license": "Apache-2.0",
+    "content": "用途：用冻结的自监督视觉编码器做线性探针、检索、密集特征和下游迁移实验。\n\n适合路线：视觉预训练、基础模型和特征评测。\n\n仓库： https://github.com/facebookresearch/dinov2\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-dinov3",
+    "order": 11,
+    "title": "DINOv3：持续关注视觉预训练进展",
+    "category": "视觉基础模型与多模态",
+    "section": "开源资源 / 自监督学习",
+    "tags": ["GitHub", "DINOv3", "视觉预训练", "Dense Feature"],
+    "url": "https://github.com/facebookresearch/dinov3",
+    "license": "Other；按仓库当前 LICENSE 和权重条款使用",
+    "content": "用途：跟踪新一代视觉自监督模型的训练、权重和密集特征能力。\n\n注意：许可证状态可能随仓库版本变化，使用前逐项核对代码、权重和数据条款。\n\n仓库： https://github.com/facebookresearch/dinov3"
+  },
+  {
+    "id": "github-cv-videomae",
+    "order": 12,
+    "title": "VideoMAE：视频自监督和时空建模",
+    "category": "视觉基础模型与多模态",
+    "section": "开源资源 / 视频基础模型",
+    "tags": ["GitHub", "VideoMAE", "视频理解", "自监督"],
+    "url": "https://github.com/MCG-NJU/VideoMAE",
+    "license": "Other；按仓库当前许可证使用",
+    "content": "用途：学习视频 token、时空遮挡、自监督预训练和视频下游任务迁移。\n\n适合路线：视频基础模型、长视频和时空建模。\n\n仓库： https://github.com/MCG-NJU/VideoMAE\n许可证：以仓库当前 LICENSE 为准。"
+  },
+  {
+    "id": "github-cv-nerfstudio",
+    "order": 13,
+    "title": "Nerfstudio：神经渲染和三维重建工作台",
+    "category": "三维、四维与空间智能",
+    "section": "开源资源 / 神经渲染",
+    "tags": ["GitHub", "NeRF", "3D", "重建"],
+    "url": "https://github.com/nerfstudio-project/nerfstudio",
+    "license": "Apache-2.0",
+    "content": "用途：从数据采集、相机位姿到 NeRF 训练和可视化，搭建可复现的神经渲染实验。\n\n适合路线：三维视觉、NeRF、可视化和实验工程。\n\n仓库： https://github.com/nerfstudio-project/nerfstudio\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-gaussian-splatting",
+    "order": 14,
+    "title": "Gaussian Splatting：实时新视角合成",
+    "category": "三维、四维与空间智能",
+    "section": "开源资源 / 三维重建",
+    "tags": ["GitHub", "Gaussian Splatting", "Novel View", "3D"],
+    "url": "https://github.com/graphdeco-inria/gaussian-splatting",
+    "license": "Other；按仓库当前许可证和依赖条款使用",
+    "content": "用途：理解显式高斯表示、相机优化和新视角合成，作为 NeRF 之后的三维实践入口。\n\n适合路线：神经渲染、3D/4D 空间智能。\n\n仓库： https://github.com/graphdeco-inria/gaussian-splatting\n许可证：以仓库当前 LICENSE 和依赖条款为准。"
+  },
+  {
+    "id": "github-cv-jepa",
+    "order": 15,
+    "title": "JEPA：面向世界模型的表征预测思路",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "开源资源 / 世界模型",
+    "tags": ["GitHub", "JEPA", "世界模型", "表征学习"],
+    "url": "https://github.com/facebookresearch/jepa",
+    "license": "Other；按仓库当前许可证使用",
+    "content": "用途：阅读 JEPA 系列的表征空间预测思路，理解它与像素级生成、视频预测和世界模型的关系。\n\n适合路线：自监督学习、世界模型、视频预测。\n\n仓库： https://github.com/facebookresearch/jepa\n许可证：以仓库当前 LICENSE 为准。"
+  },
+  {
+    "id": "github-cv-openvla",
+    "order": 16,
+    "title": "OpenVLA：视觉语言动作模型实践入口",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "开源资源 / VLA 与具身智能",
+    "tags": ["GitHub", "OpenVLA", "VLA", "机器人操作"],
+    "url": "https://github.com/openvla/openvla",
+    "license": "MIT",
+    "content": "用途：理解视觉观测、语言目标和机器人动作之间的建模与推理流程。\n\n适合路线：VLA、具身智能、示范数据和闭环评测。\n\n仓库： https://github.com/openvla/openvla\n许可证：MIT；机器人、数据和模型权重条款仍需单独核对。"
+  },
+  {
+    "id": "github-cv-openpi",
+    "order": 17,
+    "title": "OpenPI：机器人策略和动作模型参考",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "开源资源 / VLA 与具身智能",
+    "tags": ["GitHub", "机器人", "Diffusion Policy", "动作模型"],
+    "url": "https://github.com/Physical-Intelligence/openpi",
+    "license": "Apache-2.0",
+    "content": "用途：观察机器人策略训练、动作表示和真实硬件接口的工程组织方式。\n\n适合路线：VLA、模仿学习、机器人操作和部署。\n\n仓库： https://github.com/Physical-Intelligence/openpi\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-isaaclab",
+    "order": 18,
+    "title": "Isaac Lab：具身智能仿真和强化学习平台",
+    "category": "世界模型、强化学习与具身智能",
+    "section": "开源资源 / 仿真与生成数据",
+    "tags": ["GitHub", "Isaac Sim", "仿真", "强化学习"],
+    "url": "https://github.com/isaac-sim/IsaacLab",
+    "license": "BSD-3-Clause",
+    "content": "用途：构建机器人操作、强化学习和合成数据实验，比较仿真环境中的策略与传感器配置。\n\n适合路线：生成式数据、Sim2Real、强化学习和 Physical AI。\n\n仓库： https://github.com/isaac-sim/IsaacLab\n许可证：BSD-3-Clause；同时遵循 Isaac Sim 及其依赖条款。"
+  },
+  {
+    "id": "github-cv-onnx",
+    "order": 19,
+    "title": "ONNX：跨框架模型交换和部署接口",
+    "category": "数据工程、部署与 MLOps",
+    "section": "开源资源 / 模型部署",
+    "tags": ["GitHub", "ONNX", "模型导出", "部署"],
+    "url": "https://github.com/onnx/onnx",
+    "license": "Apache-2.0",
+    "content": "用途：理解模型图、算子、版本和跨框架导出，为 TensorRT、OpenVINO 等推理后端做准备。\n\n适合路线：模型部署与优化、模型服务化。\n\n仓库： https://github.com/onnx/onnx\n许可证：Apache-2.0。"
+  },
+  {
+    "id": "github-cv-tensorrt",
+    "order": 20,
+    "title": "TensorRT：GPU 推理优化和端侧部署",
+    "category": "数据工程、部署与 MLOps",
+    "section": "开源资源 / 模型部署",
+    "tags": ["GitHub", "TensorRT", "CUDA", "INT8", "边缘部署"],
+    "url": "https://github.com/NVIDIA/TensorRT",
+    "license": "Apache-2.0",
+    "content": "用途：学习 ONNX 到 TensorRT engine、FP16/INT8、算子融合、动态 shape 和性能 profiling。\n\n适合路线：模型部署、GPU 优化、端侧多模态推理。\n\n仓库： https://github.com/NVIDIA/TensorRT\n许可证：Apache-2.0；CUDA 和硬件驱动按其各自条款使用。"
+  },
+  {
+    "id": "github-cv-openvino",
+    "order": 21,
+    "title": "OpenVINO：CPU、GPU 和边缘设备推理",
+    "category": "数据工程、部署与 MLOps",
+    "section": "开源资源 / 模型部署",
+    "tags": ["GitHub", "OpenVINO", "边缘部署", "模型优化"],
+    "url": "https://github.com/openvinotoolkit/openvino",
+    "license": "Apache-2.0",
+    "content": "用途：在 Intel CPU、GPU 和边缘设备上运行视觉模型，理解模型转换、设备选择和性能测量。\n\n适合路线：模型部署与优化、端侧推理和服务化。\n\n仓库： https://github.com/openvinotoolkit/openvino\n许可证：Apache-2.0。"
+  }
+]

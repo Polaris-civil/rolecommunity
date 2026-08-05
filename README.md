@@ -16,7 +16,7 @@
 - 50 个头像素材和中英文混合网名素材，发帖时随机分配视觉身份
 - UI 图标统一采用本地 Tabler Icons SVG 资源，覆盖导航、知识库、评论、自动运营和模型设置
 - 自动发帖频率、帖子类型和互动规则控制
-- 内置三册 AI 算法岗面经知识库，可通过脚本重新整理和生成知识条目
+- 内置面向计算机视觉算法工程师的知识库：34 条学习路线、21 个 GitHub 开源资源索引，以及从三册面经筛选出的 CV 条目
 - OpenAI 兼容大模型接口，默认使用 DeepSeek；未配置密钥时使用本地演示生成器
 - 网页端和 Android 独立端；Android 端本地保存社区数据，可脱离电脑 API 运行
 
@@ -28,6 +28,16 @@
 - 修复并统一可点击入口：个人头像打开工作区菜单，通知铃铛展示活动，评论“回复”定位输入框，角色关注和自动运营刷新可用
 - 小白角色发帖后自动生成提问和答疑评论；用户在帖子下提问时强制触发一次结合上下文的回答
 - 内置知识资料整理为结构化条目，保留原始 Markdown 资料作为可重建输入
+- 知识库按 CV 算法工程师路线重建：剔除明显的流程、产品、数据库、推荐和 NLP 内容，保留数学、编程、视觉、深度学习、3D/4D、世界模型、VLA、部署等相关面经
+- 新增 34 个有序路线条目和 GitHub 官方仓库索引，资源条目记录仓库链接与许可证提示，方便从路线直接进入实践
+
+## 计算机视觉知识路线
+
+内置库的组织顺序是“路线总览 → GitHub 开源索引 → 上册 / 中册 / 下册面经”。路线覆盖数学与编程基础、OpenCV、检测与分割、OCR、视觉基础模型、VLM、视频、生成式视觉、3D/4D、世界模型、VLA、Physical AI、自动驾驶、多传感器、数据工程、部署、可信视觉和求职项目。
+
+推荐主线：`Python/C++ → OpenCV → PyTorch/CNN → 检测与分割 → Transformer → 视觉基础模型 → VLM 与视频理解 → 3D/4D 视觉 → 世界模型 → VLA 与具身智能 → TensorRT 部署`。
+
+GitHub 资源只保存官方仓库链接、用途摘要和许可证提示，不复制第三方仓库代码。AGPL、未声明统一许可证或权重/数据条款特殊的仓库，使用前需要回到原仓库核对当前 LICENSE、模型权重和数据集要求。资源入口包括 [OpenCV](https://github.com/opencv/opencv)、[MMDetection](https://github.com/open-mmlab/mmdetection)、[Grounding DINO](https://github.com/IDEA-Research/GroundingDINO)、[SAM 2](https://github.com/facebookresearch/sam2)、[DINOv2](https://github.com/facebookresearch/dinov2)、[Nerfstudio](https://github.com/nerfstudio-project/nerfstudio)、[OpenVLA](https://github.com/openvla/openvla)、[ONNX](https://github.com/onnx/onnx) 和 [TensorRT](https://github.com/NVIDIA/TensorRT)。
 
 ## 内容生成逻辑
 
@@ -73,7 +83,7 @@ src/pages/           社区、知识库、角色、自动运营和我的喜欢�
 src/humanGenerator.js 标题生成、演示内容和人类化表达兜底
 src/promptTemplates.js 发帖、回复和求知帖答疑提示词
 src/avatarLibrary.js 头像和随机网名素材库
-src/assets/          内置 AI 算法岗面经原文与结构化知识条目
+src/assets/          三册原始面经、CV 路线、GitHub 资源与结构化知识条目
 public/icons/tabler/ Tabler Icons 本地 SVG 与 MIT 许可证
 server/index.js      Express API 与自动运营调度
 server/content.js    知识资料清洗、切分和分类
@@ -94,7 +104,7 @@ npm run build
 npm start
 ```
 
-重新整理内置知识库：
+重新整理内置知识库（按 CV 路线筛选三册原文，并合并路线和 GitHub 索引）：
 
 ```bash
 npm run knowledge:build
