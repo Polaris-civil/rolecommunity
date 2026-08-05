@@ -18,10 +18,11 @@ import { relativeTime } from '../utils.js';
 
 const activityIcons = { post: Sparkles, reply: MessageCircleReply, import: FileInput };
 
-export function AutomationPage({ data, onUpdateSettings, onRun }) {
+export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
   const [settings, setSettings] = useState(data.settings);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const save = async (changes) => {
     const next = { ...settings, ...changes };
@@ -40,6 +41,18 @@ export function AutomationPage({ data, onUpdateSettings, onRun }) {
       await onRun();
     } finally {
       setRunning(false);
+    }
+  };
+
+  const refreshActivity = async () => {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } catch {
+      // The parent reports the refresh error through the global toast.
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -106,7 +119,7 @@ export function AutomationPage({ data, onUpdateSettings, onRun }) {
         </section>
 
         <section className="activity-panel">
-          <header><div><Activity size={18} /><h2>最近活动</h2></div><button className="icon-button" type="button" title="刷新"><RefreshCw size={16} /></button></header>
+          <header><div><Activity size={18} /><h2>最近活动</h2></div><button className="icon-button" type="button" title="刷新活动" onClick={refreshActivity} disabled={refreshing}><RefreshCw className={refreshing ? 'spinner' : ''} size={16} /></button></header>
           <div className="activity-list">
             {data.activity.map((item) => {
               const Icon = activityIcons[item.type] || Sparkles;

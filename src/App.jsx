@@ -274,6 +274,7 @@ export default function App() {
       <AutomationPage
         data={data}
         onUpdateSettings={(changes) => run(async () => { await api.updateSettings(changes); await refresh(); })}
+        onRefresh={() => run(refresh, '活动已刷新')}
         onRun={() => run(async () => {
           const result = await api.runAutomation({});
           await refresh();

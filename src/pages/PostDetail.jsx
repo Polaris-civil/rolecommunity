@@ -9,16 +9,43 @@ import {
   Share2,
   Sparkles,
 } from '../icons.jsx';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar } from '../components/Avatar.jsx';
 import { MarkdownContent } from '../components/MarkdownContent.jsx';
 import { formatNumber, relativeTime } from '../utils.js';
+
+const FOLLOWED_ROLES_KEY = 'rolecommunity.followed-roles.v1';
+
+function readFollowedRoles() {
+  try {
+    const value = globalThis.localStorage?.getItem(FOLLOWED_ROLES_KEY);
+    const parsed = JSON.parse(value || '[]');
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeFollowedRoles(ids) {
+  try {
+    globalThis.localStorage?.setItem(FOLLOWED_ROLES_KEY, JSON.stringify(ids));
+  } catch {
+    // Follow state remains available for the current session when storage is unavailable.
+  }
+}
 
 export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onComment }) {
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
   const [shared, setShared] = useState(false);
+  const authorId = post.author?.id || post.author?.profileId || post.author?.nickname || '';
+  const [following, setFollowing] = useState(() => authorId ? readFollowedRoles().includes(authorId) : false);
+  const commentInputRef = useRef(null);
   const roleMap = useMemo(() => new Map(roles.map((role) => [role.id, role])), [roles]);
+
+  useEffect(() => {
+    setFollowing(authorId ? readFollowedRoles().includes(authorId) : false);
+  }, [authorId]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -44,6 +71,20 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
     await navigator.clipboard?.writeText(window.location.href);
     setShared(true);
     window.setTimeout(() => setShared(false), 1500);
+  };
+
+  const toggleFollow = () => {
+    if (!authorId) return;
+    const next = !following;
+    const current = readFollowedRoles();
+    const ids = next ? [...new Set([...current, authorId])] : current.filter((id) => id !== authorId);
+    setFollowing(next);
+    writeFollowedRoles(ids);
+  };
+
+  const replyTo = (name) => {
+    setComment((current) => current || `@${name} `);
+    window.setTimeout(() => commentInputRef.current?.focus(), 0);
   };
 
   return (
@@ -84,7 +125,7 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
           <form className="comment-composer" onSubmit={submit}>
             <Avatar name="社区访客" src="https://api.dicebear.com/9.x/initials/svg?seed=社区访客&backgroundColor=dedede" />
             <label>
-              <textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="说说你的想法…" maxLength="800" />
+              <textarea ref={commentInputRef} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="说说你的想法…" maxLength="800" />
               <span>{comment.length}/800</span>
               <button className="button button-primary button-small" type="submit" disabled={sending || !comment.trim()}>
                 <Send size={15} />{sending ? '正在安排答疑…' : '评论'}
@@ -108,7 +149,7 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
                       <time>{relativeTime(item.createdAt)}</time>
                     </div>
                     <p>{item.content}</p>
-                    <button type="button">回复</button>
+                    <button type="button" onClick={() => replyTo(actor?.nickname || item.authorName || '这位朋友')}>回复</button>
                   </div>
                 </div>
               );
@@ -125,7 +166,7 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
           <h2>{post.author?.nickname}</h2>
           <p>{post.author?.bio}</p>
           <div className="profile-tags">{post.author?.tags?.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div>
-          <button className="button button-dark" type="button"><Sparkles size={16} />关注角色</button>
+          <button className="button button-dark" type="button" onClick={toggleFollow} aria-pressed={following}>{following ? <Check size={16} /> : <Sparkles size={16} />}{following ? '已关注角色' : '关注角色'}</button>
         </section>
         <blockquote>“{post.author?.postStyle}”</blockquote>
       </aside>

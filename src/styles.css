@@ -125,6 +125,26 @@ img { display: block; max-width: 100%; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #a6a8a3; }
 .status-dot.is-live { background: var(--green); box-shadow: 0 0 0 3px #d7eee9; }
 .profile-row { width: 100%; padding: 10px 6px 2px; display: grid; grid-template-columns: 34px 1fr 16px; align-items: center; gap: 9px; border: 0; background: none; text-align: left; }
+.profile-row:hover { color: var(--ink); background: #f7f7f5; border-radius: 6px; }
+.profile-popover { width: 264px; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 16px 42px rgba(25, 28, 24, .14); }
+.profile-popover-sidebar { position: absolute; left: 14px; bottom: 64px; z-index: 70; }
+.profile-popover-topbar { position: absolute; top: 54px; right: 14px; z-index: 70; }
+.profile-popover-head { min-height: 42px; display: grid; grid-template-columns: 34px minmax(0, 1fr) 28px; align-items: center; gap: 9px; }
+.profile-popover-head > span { min-width: 0; display: grid; gap: 2px; }
+.profile-popover-head strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.profile-popover-head small { color: #92958f; font-size: 10px; }
+.profile-popover-head .icon-button { width: 28px; height: 28px; }
+.profile-stats { margin: 13px 0 11px; padding: 10px 0; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #eeeeec; border-bottom: 1px solid #eeeeec; }
+.profile-stats span { display: grid; justify-items: center; gap: 2px; border-left: 1px solid #eeeeec; }
+.profile-stats span:first-child { border-left: 0; }
+.profile-stats strong { font-size: 14px; }
+.profile-stats small { color: #92958f; font-size: 9px; }
+.profile-actions { display: grid; gap: 3px; }
+.profile-actions button { min-height: 34px; padding: 0 7px; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 5px; color: #686b65; background: transparent; font-size: 11px; text-align: left; }
+.profile-actions button:hover { color: var(--ink); background: #f4f5f3; }
+.profile-actions button span { min-width: 0; flex: 1; }
+.profile-actions button small { color: #a0a29d; font-size: 9px; }
+.profile-note { margin: 11px 2px 1px; color: #999c96; font-size: 9px; line-height: 1.5; }
 
 .workspace { min-height: 100vh; margin-left: 236px; }
 .topbar {
@@ -155,6 +175,18 @@ kbd { padding: 2px 5px; border: 1px solid #dedfdb; border-bottom-width: 2px; bor
 .icon-button.danger:hover { color: #c84630; background: var(--coral-soft); }
 .notification-button { position: relative; }
 .notification-button > span { position: absolute; top: 7px; right: 7px; width: 5px; height: 5px; border: 1px solid #fff; border-radius: 50%; background: var(--coral); }
+.notification-panel { position: absolute; top: 54px; right: 58px; z-index: 70; width: 310px; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: 0 16px 42px rgba(25, 28, 24, .14); }
+.notification-panel > header { min-height: 28px; display: flex; align-items: center; justify-content: space-between; }
+.notification-panel > header strong { font-size: 12px; }
+.notification-panel > header .icon-button { width: 28px; height: 28px; }
+.notification-item { min-height: 48px; padding: 8px 2px; display: grid; grid-template-columns: 9px minmax(0, 1fr); align-items: start; gap: 8px; border-top: 1px solid #eeeeec; }
+.notification-item-dot { width: 6px; height: 6px; margin-top: 5px; border-radius: 50%; background: var(--coral); }
+.notification-item > span:last-child { min-width: 0; display: grid; gap: 3px; }
+.notification-item strong { overflow: hidden; color: #60635d; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.notification-item small { color: #a0a29d; font-size: 9px; }
+.notification-empty { margin: 13px 2px; color: #92958f; font-size: 10px; }
+.notification-footer { width: 100%; min-height: 31px; margin-top: 4px; border: 0; border-radius: 5px; color: var(--green); background: var(--green-soft); font-size: 10px; font-weight: 650; }
+.notification-footer:hover { background: #dff1ed; }
 .menu-button, .sidebar-close, .mobile-profile { display: none; }
 .page-content { width: min(100%, 1300px); margin: 0 auto; padding: 32px 36px 64px; }
 

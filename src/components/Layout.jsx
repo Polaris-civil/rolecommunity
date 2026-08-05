@@ -14,8 +14,9 @@ import {
   Users,
   X,
 } from '../icons.jsx';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Avatar } from './Avatar.jsx';
+import { relativeTime } from '../utils.js';
 
 const navigation = [
   { id: 'feed', label: '社区', icon: Home },
@@ -24,11 +25,84 @@ const navigation = [
   { id: 'automation', label: '自动运营', icon: Bot },
 ];
 
+function ProfileMenu({ data, likedCount, className, onNavigate, onOpenModelSettings, onClose }) {
+  return (
+    <section className={`profile-popover ${className || ''}`.trim()} role="dialog" aria-label="个人资料">
+      <header className="profile-popover-head">
+        <Avatar name="社区管理员" src="https://api.dicebear.com/9.x/initials/svg?seed=RC&backgroundColor=1f1f1f&fontFamily=Arial" size="lg" />
+        <span><strong>社区管理员</strong><small>本地工作区</small></span>
+        <button className="icon-button" type="button" onClick={onClose} title="关闭个人资料"><X size={16} /></button>
+      </header>
+      <div className="profile-stats">
+        <span><strong>{data?.stats?.posts || 0}</strong><small>帖子</small></span>
+        <span><strong>{likedCount}</strong><small>喜欢</small></span>
+        <span><strong>{data?.stats?.knowledge || 0}</strong><small>知识条目</small></span>
+      </div>
+      <div className="profile-actions">
+        <button type="button" onClick={() => onNavigate('liked')}><Heart size={16} /><span>我的喜欢</span><small>{likedCount}</small></button>
+        <button type="button" onClick={onOpenModelSettings}><Settings2 size={16} /><span>模型设置</span></button>
+      </div>
+      <p className="profile-note">这是当前设备上的本地工作区，无需注册登录。</p>
+    </section>
+  );
+}
+
+function NotificationPanel({ data, onNavigate, onClose }) {
+  const activity = (data?.activity || []).slice(0, 4);
+  return (
+    <section className="notification-panel" role="dialog" aria-label="最近活动">
+      <header><strong>最近活动</strong><button className="icon-button" type="button" onClick={onClose} title="关闭通知"><X size={16} /></button></header>
+      {activity.length ? activity.map((item) => (
+        <div className="notification-item" key={item.id}>
+          <span className="notification-item-dot" />
+          <span><strong>{item.text}</strong><small>{relativeTime(item.createdAt)}</small></span>
+        </div>
+      )) : <p className="notification-empty">暂时没有新的社区活动。</p>}
+      <button className="notification-footer" type="button" onClick={() => onNavigate('automation')}>查看自动运营活动</button>
+    </section>
+  );
+}
+
 export function Layout({ view, setView, query, setQuery, data, likedCount = 0, onOpenModelSettings, children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileAnchor, setProfileAnchor] = useState(null);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const navigate = (id) => {
     setView(id);
     setMobileOpen(false);
+    setProfileAnchor(null);
+    setNotificationOpen(false);
+  };
+
+  useEffect(() => {
+    if (!profileAnchor && !notificationOpen) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (event.target.closest('.profile-trigger, .profile-popover, .notification-trigger, .notification-panel')) return;
+      setProfileAnchor(null);
+      setNotificationOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') {
+        setProfileAnchor(null);
+        setNotificationOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [notificationOpen, profileAnchor]);
+
+  const toggleProfile = (anchor) => {
+    setNotificationOpen(false);
+    setProfileAnchor((current) => (current === anchor ? null : anchor));
+  };
+
+  const toggleNotifications = () => {
+    setProfileAnchor(null);
+    setNotificationOpen((current) => !current);
   };
 
   return (
@@ -92,11 +166,12 @@ export function Layout({ view, setView, query, setQuery, data, likedCount = 0, o
             <span className={`status-dot ${data?.settings?.autoPostEnabled ? 'is-live' : ''}`} />
             <span>{data?.settings?.autoPostEnabled ? '自动运营中' : '自动运营已暂停'}</span>
           </div>
-          <button className="profile-row" type="button">
+          <button className="profile-row profile-trigger" type="button" onClick={() => toggleProfile('sidebar')} aria-expanded={profileAnchor === 'sidebar'}>
             <Avatar name="社区管理员" src="https://api.dicebear.com/9.x/initials/svg?seed=RC&backgroundColor=1f1f1f&fontFamily=Arial" />
             <span><strong>社区管理员</strong><small>本地工作区</small></span>
             <ChevronDown size={16} />
           </button>
+          {profileAnchor === 'sidebar' && <ProfileMenu className="profile-popover-sidebar" data={data} likedCount={likedCount} onNavigate={navigate} onOpenModelSettings={() => { setProfileAnchor(null); onOpenModelSettings(); }} onClose={() => setProfileAnchor(null)} />}
         </div>
       </aside>
 
@@ -115,12 +190,14 @@ export function Layout({ view, setView, query, setQuery, data, likedCount = 0, o
           <div className="topbar-actions">
             <button className="ai-mode ai-mode-button" type="button" onClick={onOpenModelSettings} title="打开模型设置"><Sparkles size={14} /> {data?.runtime === 'mobile' ? data?.aiMode === 'llm' ? '手机 LLM 已配置' : '手机演示生成器' : data?.aiMode === 'llm' ? 'LLM 已配置' : '演示生成器'}</button>
             <button className="icon-button model-settings-button" type="button" onClick={onOpenModelSettings} title="模型设置"><Settings2 size={19} /></button>
-            <button className="icon-button notification-button" type="button" title="通知">
+            <button className="icon-button notification-button notification-trigger" type="button" title="通知" aria-expanded={notificationOpen} onClick={toggleNotifications}>
               <Bell size={19} />
               <span />
             </button>
-            <button className="icon-button mobile-profile" type="button" title="个人资料"><CircleUserRound size={21} /></button>
+            <button className="icon-button mobile-profile profile-trigger" type="button" title="个人资料" aria-expanded={profileAnchor === 'topbar'} onClick={() => toggleProfile('topbar')}><CircleUserRound size={21} /></button>
           </div>
+          {notificationOpen && <NotificationPanel data={data} onNavigate={navigate} onClose={() => setNotificationOpen(false)} />}
+          {profileAnchor === 'topbar' && <ProfileMenu className="profile-popover-topbar" data={data} likedCount={likedCount} onNavigate={navigate} onOpenModelSettings={() => { setProfileAnchor(null); onOpenModelSettings(); }} onClose={() => setProfileAnchor(null)} />}
         </header>
         <main className="page-content">{children}</main>
       </div>
