@@ -14,3 +14,6 @@ android/build/
 android/local.properties
 android/.idea/
 *.iml
+
+# Self-hosted update artifacts
+update-server/

@@ -11,6 +11,7 @@ import {
   Search,
   Settings2,
   Sparkles,
+  RefreshCw,
   Users,
   X,
 } from '../icons.jsx';
@@ -25,7 +26,7 @@ const navigation = [
   { id: 'automation', label: '自动运营', icon: Bot },
 ];
 
-function ProfileMenu({ data, likedCount, className, onNavigate, onOpenModelSettings, onClose }) {
+function ProfileMenu({ data, likedCount, updateInfo, className, onNavigate, onOpenModelSettings, onOpenUpdates, onClose }) {
   return (
     <section className={`profile-popover ${className || ''}`.trim()} role="dialog" aria-label="个人资料">
       <header className="profile-popover-head">
@@ -41,6 +42,7 @@ function ProfileMenu({ data, likedCount, className, onNavigate, onOpenModelSetti
       <div className="profile-actions">
         <button type="button" onClick={() => onNavigate('liked')}><Heart size={16} /><span>我的喜欢</span><small>{likedCount}</small></button>
         <button type="button" onClick={onOpenModelSettings}><Settings2 size={16} /><span>模型设置</span></button>
+        <button type="button" onClick={onOpenUpdates}><RefreshCw size={16} /><span>应用更新</span><small>{updateInfo?.status === 'available' ? `v${updateInfo.manifest.version}` : ''}</small></button>
       </div>
       <p className="profile-note">这是当前设备上的本地工作区，无需注册登录。</p>
     </section>
@@ -63,7 +65,7 @@ function NotificationPanel({ data, onNavigate, onClose }) {
   );
 }
 
-export function Layout({ view, setView, query, setQuery, data, likedCount = 0, onOpenModelSettings, children }) {
+export function Layout({ view, setView, query, setQuery, data, likedCount = 0, updateInfo, onOpenModelSettings, onOpenUpdates, children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileAnchor, setProfileAnchor] = useState(null);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -171,7 +173,7 @@ export function Layout({ view, setView, query, setQuery, data, likedCount = 0, o
             <span><strong>社区管理员</strong><small>本地工作区</small></span>
             <ChevronDown size={16} />
           </button>
-          {profileAnchor === 'sidebar' && <ProfileMenu className="profile-popover-sidebar" data={data} likedCount={likedCount} onNavigate={navigate} onOpenModelSettings={() => { setProfileAnchor(null); onOpenModelSettings(); }} onClose={() => setProfileAnchor(null)} />}
+          {profileAnchor === 'sidebar' && <ProfileMenu className="profile-popover-sidebar" data={data} likedCount={likedCount} updateInfo={updateInfo} onNavigate={navigate} onOpenModelSettings={() => { setProfileAnchor(null); onOpenModelSettings(); }} onOpenUpdates={() => { setProfileAnchor(null); onOpenUpdates(); }} onClose={() => setProfileAnchor(null)} />}
         </div>
       </aside>
 
@@ -197,7 +199,7 @@ export function Layout({ view, setView, query, setQuery, data, likedCount = 0, o
             <button className="icon-button mobile-profile profile-trigger" type="button" title="个人资料" aria-expanded={profileAnchor === 'topbar'} onClick={() => toggleProfile('topbar')}><CircleUserRound size={21} /></button>
           </div>
           {notificationOpen && <NotificationPanel data={data} onNavigate={navigate} onClose={() => setNotificationOpen(false)} />}
-          {profileAnchor === 'topbar' && <ProfileMenu className="profile-popover-topbar" data={data} likedCount={likedCount} onNavigate={navigate} onOpenModelSettings={() => { setProfileAnchor(null); onOpenModelSettings(); }} onClose={() => setProfileAnchor(null)} />}
+          {profileAnchor === 'topbar' && <ProfileMenu className="profile-popover-topbar" data={data} likedCount={likedCount} updateInfo={updateInfo} onNavigate={navigate} onOpenModelSettings={() => { setProfileAnchor(null); onOpenModelSettings(); }} onOpenUpdates={() => { setProfileAnchor(null); onOpenUpdates(); }} onClose={() => setProfileAnchor(null)} />}
         </header>
         <main className="page-content">{children}</main>
       </div>

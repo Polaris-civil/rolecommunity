@@ -19,6 +19,7 @@
 - 内置面向计算机视觉算法工程师的知识库：34 条学习路线、21 个 GitHub 开源资源索引，以及从三册面经筛选出的 CV 条目
 - OpenAI 兼容大模型接口，默认使用 DeepSeek；未配置密钥时使用本地演示生成器
 - 网页端和 Android 独立端；Android 端本地保存社区数据，可脱离电脑 API 运行
+- Android 支持自托管更新清单：联网时检查并下载新 APK，断网时继续使用本地社区
 
 ## 最近完成
 
@@ -30,6 +31,7 @@
 - 内置知识资料整理为结构化条目，保留原始 Markdown 资料作为可重建输入
 - 知识库按 CV 算法工程师路线重建：剔除明显的流程、产品、数据库、推荐和 NLP 内容，保留数学、编程、视觉、深度学习、3D/4D、世界模型、VLA、部署等相关面经
 - 新增 34 个有序路线条目和 GitHub 官方仓库索引，资源条目记录仓库链接与许可证提示，方便从路线直接进入实践
+- 新增 Android 自托管更新：更新地址可在“个人资料 → 应用更新”配置，更新服务不可用不会阻塞离线使用
 
 ## 计算机视觉知识路线
 
@@ -60,6 +62,8 @@ npm run dev
 
 Android APK 是独立模式：帖子、角色、知识库和运营设置保存在手机本地，模型请求由手机直接发送到 DeepSeek，不依赖电脑 API。自动运营会在打开 App 或从后台恢复时检查是否到期并生成帖子；Android 完全关闭 App 时不会运行 JavaScript 定时器。
 
+应用更新同样是可选的。Android 端只有在配置了自托管 `update-manifest.json` 且联网时才会检查；更新清单和 APK 都由你自己的静态站点提供。检查失败、手机断网或更新地址为空时，帖子、知识库、角色、喜欢和模型设置仍从本地存储读取，不依赖更新服务器。
+
 首次启动会在 `data/store.json` 生成演示数据。该目录已被 Git 忽略，删除它即可重置本地社区。
 
 ## 接入大模型
@@ -83,6 +87,8 @@ src/pages/           社区、知识库、角色、自动运营和我的喜欢�
 src/humanGenerator.js 标题生成、演示内容和人类化表达兜底
 src/promptTemplates.js 发帖、回复和求知帖答疑提示词
 src/avatarLibrary.js 头像和随机网名素材库
+src/updateManifest.js 更新清单格式与版本比较
+src/updateService.js 自托管更新检查、下载和离线容错
 src/assets/          三册原始面经、CV 路线、GitHub 资源与结构化知识条目
 public/icons/tabler/ Tabler Icons 本地 SVG 与 MIT 许可证
 server/index.js      Express API 与自动运营调度
@@ -94,6 +100,7 @@ scripts/             内置知识库构建脚本
 test/                Node 单元测试
 capacitor.config.ts  Android Capacitor 配置
 android/             Android 原生工程
+scripts/publish-update.mjs 生成自托管 APK 与 update-manifest.json
 ```
 
 ## 构建与测试
@@ -117,6 +124,19 @@ npm run android:build
 ```
 
 安装后无需启动电脑 API；首次打开 App，在“模型设置”中选择 DeepSeek V4 Flash 或 V4 Pro 并填写 Key 即可。
+
+### 自托管 Android 更新
+
+每次发布新 APK 时递增 `android/app/build.gradle` 中的 `versionCode`，同步修改 `versionName`、`src/updateManifest.js` 和 `package.json` 版本，然后构建并生成更新目录。发布脚本会校验清单版本码和 Gradle 版本码一致：
+
+```bash
+JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+ANDROID_HOME=/opt/homebrew/share/android-commandlinetools \
+npm run android:build
+npm run update:publish -- --dir=update-server --url=https://你的域名/rolecommunity --versionCode=2 --notes="本次更新说明"
+```
+
+把 `update-server/` 整个目录放到自己的静态文件服务器，确保 `update-manifest.json` 和 APK 可以通过 HTTPS 访问。手机 App 打开“个人资料 → 应用更新”，填写清单 URL，例如 `https://你的域名/rolecommunity/update-manifest.json`。Android 会使用系统下载器下载并弹出安装确认；更新不会清除本地数据。后续 APK 必须继续使用同一签名密钥，否则 Android 不会覆盖安装。`update-server/` 已加入 Git 忽略，不会把 APK 提交进仓库。
 
 生产模式下 Express 会同时托管构建后的前端和 API，默认地址为 `http://127.0.0.1:3001`。
 

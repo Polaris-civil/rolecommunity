@@ -17,7 +17,9 @@ const iconFiles = {
   CloudUpload: 'cloud-upload',
   Code2: 'code',
   DeviceFloppy: 'device-floppy',
+  Download: 'file-import',
   Edit: 'edit',
+  ExternalLink: 'arrow-up-right',
   Eye: 'eye',
   EyeOff: 'eye-off',
   FileInput: 'file-import',
@@ -53,6 +55,7 @@ const iconFiles = {
   TrendingUp: 'trending-up',
   UploadCloud: 'upload',
   Users: 'users',
+  WifiOff: 'alert-circle',
   X: 'x',
   Zap: 'bolt',
 };
@@ -96,12 +99,14 @@ export const CircleUserRound = createIcon('CircleUserRound');
 export const Clock3 = createIcon('Clock3');
 export const CloudUpload = createIcon('CloudUpload');
 export const Code2 = createIcon('Code2');
+export const Download = createIcon('Download');
 export const Eye = createIcon('Eye');
 export const EyeOff = createIcon('EyeOff');
 export const FileInput = createIcon('FileInput');
 export const FilePlus2 = createIcon('FilePlus2');
 export const FileText = createIcon('FileText');
 export const FolderOpen = createIcon('FolderOpen');
+export const ExternalLink = createIcon('ExternalLink');
 export const Heart = createIcon('Heart');
 export const Home = createIcon('Home');
 export const KeyRound = createIcon('KeyRound');
@@ -131,5 +136,6 @@ export const Trash2 = createIcon('Trash2');
 export const TrendingUp = createIcon('TrendingUp');
 export const UploadCloud = createIcon('UploadCloud');
 export const Users = createIcon('Users');
+export const WifiOff = createIcon('WifiOff');
 export const X = createIcon('X');
 export const Zap = createIcon('Zap');

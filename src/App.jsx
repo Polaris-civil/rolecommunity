@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, isMobileApp } from './api.js';
 import { Layout } from './components/Layout.jsx';
 import { ModelSettingsModal } from './components/ModelSettingsModal.jsx';
+import { UpdateSettingsModal } from './components/UpdateSettingsModal.jsx';
 import { AutomationPage } from './pages/AutomationPage.jsx';
 import { FeedPage } from './pages/FeedPage.jsx';
 import { KnowledgePage } from './pages/KnowledgePage.jsx';
 import { LikedPage } from './pages/LikedPage.jsx';
 import { PostDetail } from './pages/PostDetail.jsx';
 import { RolesPage } from './pages/RolesPage.jsx';
+import { APP_VERSION, checkForUpdate, downloadAndInstallUpdate, readUpdateSettings, saveUpdateSettings } from './updateService.js';
 
 const LIKED_POSTS_KEY = 'rolecommunity.liked-posts.v1';
 
@@ -40,7 +42,11 @@ export default function App() {
   const [error, setError] = useState('');
   const [toast, setToast] = useState(null);
   const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
-  const navigationRef = useRef({ view: 'feed', selectedPost: null, modelSettingsOpen: false });
+  const [updateSettingsOpen, setUpdateSettingsOpen] = useState(false);
+  const [updateSettings, setUpdateSettings] = useState(readUpdateSettings);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [updateChecking, setUpdateChecking] = useState(false);
+  const navigationRef = useRef({ view: 'feed', selectedPost: null, modelSettingsOpen: false, updateSettingsOpen: false });
 
   const refresh = useCallback(async () => {
     const next = await api.bootstrap();
@@ -52,9 +58,30 @@ export default function App() {
     refresh().catch((loadError) => setError(loadError.message));
   }, [refresh]);
 
+  const checkUpdate = useCallback(async (manifestUrl) => {
+    setUpdateChecking(true);
+    try {
+      const result = await checkForUpdate({ manifestUrl: manifestUrl ?? updateSettings.manifestUrl });
+      setUpdateInfo(result);
+      setUpdateSettings(readUpdateSettings());
+      return result;
+    } finally {
+      setUpdateChecking(false);
+    }
+  }, [updateSettings.manifestUrl]);
+
+  useEffect(() => {
+    if (!updateSettings.autoCheck) return undefined;
+    checkUpdate().catch(() => undefined);
+    return undefined;
+  }, []);
+
   useEffect(() => {
     if (!isMobileApp) return undefined;
-    const refreshOnResume = () => refresh().catch((loadError) => setError(loadError.message));
+    const refreshOnResume = () => {
+      refresh().catch((loadError) => setError(loadError.message));
+      if (readUpdateSettings().autoCheck) checkUpdate().catch(() => undefined);
+    };
     const handleVisibility = () => {
       if (!document.hidden) refreshOnResume();
     };
@@ -64,11 +91,11 @@ export default function App() {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', refreshOnResume);
     };
-  }, [refresh]);
+  }, [checkUpdate, refresh]);
 
   useEffect(() => {
-    navigationRef.current = { view, selectedPost, modelSettingsOpen };
-  }, [modelSettingsOpen, selectedPost, view]);
+    navigationRef.current = { view, selectedPost, modelSettingsOpen, updateSettingsOpen };
+  }, [modelSettingsOpen, selectedPost, updateSettingsOpen, view]);
 
   useEffect(() => {
     if (!isMobileApp) return undefined;
@@ -83,6 +110,10 @@ export default function App() {
       }
       if (navigation.modelSettingsOpen) {
         setModelSettingsOpen(false);
+        return;
+      }
+      if (navigation.updateSettingsOpen) {
+        setUpdateSettingsOpen(false);
         return;
       }
       if (navigation.selectedPost) {
@@ -137,6 +168,17 @@ export default function App() {
   }, [toast]);
 
   const notify = (message, type = 'success') => setToast({ message, type });
+
+  const saveUpdates = async (values) => {
+    const next = saveUpdateSettings(values);
+    setUpdateSettings(next);
+    return checkUpdate(next.manifestUrl);
+  };
+
+  const installUpdate = async () => {
+    await downloadAndInstallUpdate(updateInfo?.manifest);
+    notify('已开始下载更新，下载完成后请确认安装');
+  };
 
   const run = async (action, successMessage) => {
     try {
@@ -289,7 +331,7 @@ export default function App() {
 
   return (
     <>
-      <Layout view={view} setView={setView} query={query} setQuery={setQuery} data={data} likedCount={likedPostIds.length} onOpenModelSettings={() => setModelSettingsOpen(true)}>{page}</Layout>
+      <Layout view={view} setView={setView} query={query} setQuery={setQuery} data={data} likedCount={likedPostIds.length} updateInfo={updateInfo} onOpenModelSettings={() => setModelSettingsOpen(true)} onOpenUpdates={() => setUpdateSettingsOpen(true)}>{page}</Layout>
       {modelSettingsOpen && (
         <ModelSettingsModal
           config={data.llm}
@@ -299,6 +341,18 @@ export default function App() {
             await refresh();
             notify(values.clearKey ? '已清除本机模型 Key，回到演示生成器' : '模型设置已保存');
           })}
+        />
+      )}
+      {updateSettingsOpen && (
+        <UpdateSettingsModal
+          currentVersion={APP_VERSION}
+          settings={updateSettings}
+          result={updateInfo}
+          checking={updateChecking}
+          onCheck={checkUpdate}
+          onSave={saveUpdates}
+          onInstall={() => run(installUpdate)}
+          onClose={() => setUpdateSettingsOpen(false)}
         />
       )}
       {toast && (

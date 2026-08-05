@@ -533,6 +533,27 @@ input[type="range"] { accent-color: var(--green); }
 .form-actions { margin: 5px -22px -21px; padding: 14px 22px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--line); background: #fafaf9; }
 .generation-preview { min-height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; border-radius: 6px; color: #54746e; background: var(--green-soft); font-size: 10px; }
 .model-settings-form { gap: 16px; }
+.update-status-card { min-height: 58px; padding: 11px 13px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid #b8ded6; border-radius: 7px; color: #2f7368; background: var(--green-soft); }
+.update-status-card.is-available { border-color: #f1c2b8; color: #a84430; background: var(--coral-soft); }
+.update-status-card.is-offline { border-color: #eadfbd; color: #896218; background: var(--amber-soft); }
+.update-status-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 6px; color: inherit; background: rgba(255, 255, 255, .65); }
+.update-status-card > div { min-width: 0; display: grid; gap: 3px; }
+.update-status-card strong { font-size: 12px; }
+.update-status-card small { overflow: hidden; color: inherit; opacity: .78; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.update-release-card { padding: 13px; display: grid; gap: 10px; border: 1px solid #f1c2b8; border-radius: 7px; background: #fff9f7; }
+.update-release-card header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.update-release-card header strong { color: #6b3a31; font-size: 11px; }
+.update-release-card header span { color: #a84430; font-size: 9px; }
+.update-release-card p { margin: 0; color: #6c625f; font-size: 10px; line-height: 1.65; white-space: pre-wrap; }
+.update-release-card .button { justify-self: start; }
+.update-checksum { overflow-wrap: anywhere; color: #9d827b; font: 9px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.update-inline-note { padding: 10px 11px; display: flex; align-items: flex-start; gap: 7px; border-radius: 6px; color: #54746e; background: #f2f8f6; font-size: 10px; line-height: 1.6; }
+.update-inline-note-warning { color: #896218; background: var(--amber-soft); }
+.update-inline-note .tabler-icon { flex: 0 0 auto; }
+.update-check-row { display: flex !important; grid-template-columns: none; align-items: center; gap: 8px !important; color: #60635d; font-size: 11px; }
+.update-check-row input { width: 15px !important; min-height: 15px !important; accent-color: var(--green); }
+.update-direct-link { display: inline-flex; align-items: center; gap: 5px; color: #54746e; font-size: 10px; text-decoration: none; }
+.update-direct-link:hover { color: var(--ink); text-decoration: underline; }
 .model-mode-banner { min-height: 58px; padding: 11px 13px; display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 10px; border: 1px solid #eadfbd; border-radius: 7px; color: #896218; background: var(--amber-soft); }
 .model-mode-banner.is-configured { border-color: #b8ded6; color: #2f7368; background: var(--green-soft); }
 .model-mode-banner > span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 6px; background: rgba(255, 255, 255, .6); }
@@ -673,6 +694,8 @@ input[type="range"] { accent-color: var(--green); }
   .modal-backdrop { padding: 0; align-items: end; }
   .modal { max-height: 92vh; border-radius: 8px 8px 0 0; }
   .modal-body { max-height: calc(92vh - 58px); }
+  .update-status-card { grid-template-columns: 34px minmax(0, 1fr); }
+  .update-status-card .button { grid-column: 1 / -1; justify-self: start; }
   .toast { right: 15px; bottom: 76px; }
   .mobile-nav { position: fixed; inset: auto 0 0; z-index: 24; height: 62px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: rgba(255, 255, 255, .97); backdrop-filter: blur(12px); }
   .mobile-nav button { display: grid; place-items: center; align-content: center; gap: 3px; border: 0; color: #898c86; background: transparent; font-size: 8px; }

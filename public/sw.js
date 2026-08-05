@@ -1,5 +1,5 @@
-const CACHE = 'rolecommunity-shell-v1';
-const SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
+const CACHE = 'rolecommunity-shell-v2';
+const SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/update-manifest.json'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
