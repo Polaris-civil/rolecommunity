@@ -12,7 +12,7 @@
 
 RoleCommunity 是一个配置驱动的 AI 角色扮演知识社区生成器。导入 PDF、Markdown 或纯文本资料，系统会把知识点整理成帖子，再让不同角色发帖、评论和回答问题。它适合把“看不下去的资料”变成可以持续刷、持续讨论的学习空间。
 
-> 当前版本：`0.1.3`。默认社区为「面试修炼场」，内置计算机视觉算法工程师学习路线、GitHub 资源索引和三册面经条目。
+> 当前版本：`0.1.4`。默认社区为「面试修炼场」，内置计算机视觉算法工程师学习路线、GitHub 资源索引和三册面经条目。
 
 ## 目录
 
@@ -85,7 +85,7 @@ Android 端不需要电脑 API，适合在手机上长期使用：帖子、角�
 
 ### 下载
 
-- [下载最新 APK（v0.1.3）](https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.3/RoleCommunity-0.1.3-4.apk)
+- [下载最新 APK（v0.1.4）](https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.4/RoleCommunity-0.1.4-5.apk)
 - [查看全部 Releases](https://github.com/Polaris-civil/rolecommunity/releases)
 
 安装后，在右上角头像菜单打开“模型设置”，选择模型并填写 API Key。侧栏“当前社区”可以切换知识库；自动运营会在打开 App 或从后台恢复时检查是否到期并生成帖子；完全关闭 App 时不会运行 JavaScript 定时器。
@@ -147,7 +147,7 @@ npm run android:build
 npm run update:publish -- \
   --dir=update-server \
   --url=https://你的域名/rolecommunity \
-  --versionCode=4 \
+  --versionCode=5 \
   --notes="本次更新说明"
 ```
 
@@ -155,7 +155,7 @@ npm run update:publish -- \
 
 ```text
 https://你的域名/rolecommunity/update-manifest.json
-https://你的域名/rolecommunity/RoleCommunity-0.1.3-4.apk
+https://你的域名/rolecommunity/RoleCommunity-0.1.4-5.apk
 ```
 
 发布脚本会校验版本号和 Gradle 的 `versionCode` 是否一致，并写入 APK 的 SHA-256。后续 APK 必须使用同一签名密钥，否则 Android 不会覆盖安装。`update-server/` 已加入 `.gitignore`，不会把 APK 意外提交进源码仓库。

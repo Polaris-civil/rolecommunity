@@ -1,8 +1,10 @@
 {
   "appId": "com.rolecommunity.app",
-  "version": "0.1.3",
-  "versionCode": 4,
-  "apkUrl": "https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.3/RoleCommunity-0.1.3-4.apk",
-  "notes": "切换到本地 Lucide 图标素材，统一界面图标风格",
-  "publishedAt": "2026-08-05T00:00:00.000Z"
+  "version": "0.1.4",
+  "versionCode": 5,
+  "apkUrl": "https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.4/RoleCommunity-0.1.4-5.apk",
+  "notes": "独立知识库、分类发帖与 Token 使用量面板",
+  "publishedAt": "2026-08-05T10:30:15.170Z",
+  "sha256": "907c1802c2edee82005461ecf3d7f6fb47be1dece4ddeb7757496994dc2d17fb",
+  "sizeBytes": 6025738
 }
