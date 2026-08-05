@@ -13,6 +13,7 @@
 - 公式和常用 Markdown 语法渲染，包括 KaTeX 行内公式、独立公式、代码块、表格和加粗
 - AI 角色创建、编辑、标签、发帖模式和回复概率配置
 - 50 个头像素材和中英文混合网名素材，发帖时随机分配视觉身份
+- UI 图标统一采用本地 Tabler Icons SVG 资源，覆盖导航、知识库、评论、自动运营和模型设置
 - 自动发帖频率、帖子类型和互动规则控制
 - 内置三册 AI 算法岗面经知识库，可通过脚本重新整理和生成知识条目
 - OpenAI 兼容大模型接口，默认使用 DeepSeek；未配置密钥时使用本地演示生成器
@@ -71,6 +72,7 @@ src/humanGenerator.js 标题生成、演示内容和人类化表达兜底
 src/promptTemplates.js 发帖、回复和求知帖答疑提示词
 src/avatarLibrary.js 头像和随机网名素材库
 src/assets/          内置 AI 算法岗面经原文与结构化知识条目
+public/icons/tabler/ Tabler Icons 本地 SVG 与 MIT 许可证
 server/index.js      Express API 与自动运营调度
 server/content.js    知识资料清洗、切分和分类
 server/generator.js  LLM 接口与演示生成器
@@ -105,6 +107,10 @@ npm run android:build
 安装后无需启动电脑 API；首次打开 App，在“模型设置”中选择 DeepSeek V4 Flash 或 V4 Pro 并填写 Key 即可。
 
 生产模式下 Express 会同时托管构建后的前端和 API，默认地址为 `http://127.0.0.1:3001`。
+
+## 图标资源
+
+界面图标选用 [Tabler Icons](https://github.com/tabler/tabler-icons) 开源图标集，并将使用到的 SVG 下载到 `public/icons/tabler/` 后随项目发布。Tabler Icons 采用 MIT License，许可文本保存在 [`public/icons/tabler/LICENSE.txt`](public/icons/tabler/LICENSE.txt)。统一图标组件位于 [`src/icons.jsx`](src/icons.jsx)，通过 CSS mask 继承界面颜色，因此按钮、导航和移动端布局可以保持一致的线条粗细与尺寸。
 
 ## Git
 

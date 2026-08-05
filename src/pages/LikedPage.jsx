@@ -1,4 +1,4 @@
-import { ArrowLeft, Heart, Sparkles } from 'lucide-react';
+import { ArrowLeft, Heart, Sparkles } from '../icons.jsx';
 import { PostCard } from './FeedPage.jsx';
 
 export function LikedPage({ data, likedPostIds, onOpenPost, onRemoveLike, onBackToFeed }) {

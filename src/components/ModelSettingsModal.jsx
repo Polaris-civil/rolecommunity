@@ -1,4 +1,4 @@
-import { Code2, Eye, EyeOff, KeyRound, RotateCcw, Save, ShieldCheck, Sparkles } from 'lucide-react';
+import { Code2, Eye, EyeOff, KeyRound, RotateCcw, Save, ShieldCheck, Sparkles } from '../icons.jsx';
 import { useState } from 'react';
 import { Modal } from './Modal.jsx';
 import { promptPreview } from '../promptTemplates.js';

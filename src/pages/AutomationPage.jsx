@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Sparkles,
   Zap,
-} from 'lucide-react';
+} from '../icons.jsx';
 import { useState } from 'react';
 import { relativeTime } from '../utils.js';
 

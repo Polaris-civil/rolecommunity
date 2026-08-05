@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, LoaderCircle, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, LoaderCircle, X } from './icons.jsx';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, isMobileApp } from './api.js';

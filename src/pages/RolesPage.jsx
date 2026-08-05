@@ -1,4 +1,4 @@
-import { Clock3, MessageCircleReply, MoreHorizontal, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Clock3, MessageCircleReply, MoreHorizontal, Pencil, Plus, Sparkles, Trash2 } from '../icons.jsx';
 import { useState } from 'react';
 import { Avatar } from '../components/Avatar.jsx';
 import { Modal } from '../components/Modal.jsx';

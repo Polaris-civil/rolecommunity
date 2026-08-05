@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { X } from '../icons.jsx';
 
 export function Modal({ title, children, onClose, wide = false }) {
   return (

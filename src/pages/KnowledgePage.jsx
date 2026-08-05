@@ -14,7 +14,7 @@ import {
   Trash2,
   Tag,
   UploadCloud,
-} from 'lucide-react';
+} from '../icons.jsx';
 import { useMemo, useRef, useState } from 'react';
 import { MarkdownContent } from '../components/MarkdownContent.jsx';
 import { Modal } from '../components/Modal.jsx';

@@ -8,7 +8,7 @@ import {
   PenLine,
   Sparkles,
   TrendingUp,
-} from 'lucide-react';
+} from '../icons.jsx';
 import { useMemo, useState } from 'react';
 import { Avatar } from '../components/Avatar.jsx';
 import { Modal } from '../components/Modal.jsx';

@@ -96,7 +96,7 @@ const titleVariants = {
   tutorial: [
     ({ topic }) => `把「${topic}」讲人话：先判断什么，再决定怎么答`,
     ({ topic, cue }) => `「${topic}」的关键不在结论，答案藏在${cue}`,
-    ({ topic }) => `「${topic}」怎么落地？我按执行顺序拆一遍`,
+    ({ topic }) => `「${topic}」怎么落地？关键是按执行顺序拆一遍`,
     ({ topic }) => `一张判断清单：遇到「${topic}」先看哪里`,
     ({ topic, cue }) => `从「${cue}」出发，重新捋清「${topic}」`,
   ],

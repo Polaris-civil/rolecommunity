@@ -1,6 +1,7 @@
 import {
   Bell,
   BookOpen,
+  Brain,
   Bot,
   ChevronDown,
   CircleUserRound,
@@ -12,7 +13,7 @@ import {
   Sparkles,
   Users,
   X,
-} from 'lucide-react';
+} from '../icons.jsx';
 import { useState } from 'react';
 import { Avatar } from './Avatar.jsx';
 
@@ -35,7 +36,7 @@ export function Layout({ view, setView, query, setQuery, data, likedCount = 0, o
       <aside className={`sidebar ${mobileOpen ? 'sidebar-open' : ''}`}>
         <div className="brand-row">
           <button className="brand" type="button" onClick={() => navigate('feed')}>
-            <span className="brand-mark"><Sparkles size={18} /></span>
+            <span className="brand-mark"><Brain size={19} /></span>
             <span>RoleCommunity</span>
           </button>
           <button className="icon-button sidebar-close" type="button" onClick={() => setMobileOpen(false)} title="关闭菜单">
@@ -65,7 +66,7 @@ export function Layout({ view, setView, query, setQuery, data, likedCount = 0, o
         <div className="sidebar-community">
           <p className="nav-label">当前社区</p>
           <button className="community-switcher" type="button" onClick={() => navigate('feed')}>
-            <span className="community-icon">RC</span>
+            <span className="community-icon"><Brain size={18} /></span>
             <span>
               <strong>面试修炼场</strong>
               <small>{data?.stats?.posts || 0} 篇帖子 · {data?.roles?.length || 0} 位角色</small>

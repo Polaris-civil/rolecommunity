@@ -26,7 +26,6 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "katex": "^0.18.1",
-    "lucide-react": "^0.468.0",
     "multer": "^2.0.2",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^6.2.108",

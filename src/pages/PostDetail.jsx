@@ -8,7 +8,7 @@ import {
   Send,
   Share2,
   Sparkles,
-} from 'lucide-react';
+} from '../icons.jsx';
 import { useMemo, useState } from 'react';
 import { Avatar } from '../components/Avatar.jsx';
 import { MarkdownContent } from '../components/MarkdownContent.jsx';
