@@ -15,6 +15,8 @@ import {
 } from '../icons.jsx';
 import { useState } from 'react';
 import { relativeTime } from '../utils.js';
+import { SelectMenu } from '../components/SelectMenu.jsx';
+import { frequencyLabel, normalizePostFrequency } from '../automationSchedule.js';
 
 const activityIcons = { post: Sparkles, reply: MessageCircleReply, import: FileInput };
 
@@ -47,7 +49,7 @@ function TokenUsagePanel({ usage = {} }) {
 }
 
 export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
-  const [settings, setSettings] = useState(data.settings);
+  const [settings, setSettings] = useState(() => normalizePostFrequency(data.settings));
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -84,7 +86,11 @@ export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
     }
   };
 
-  const intervalHours = Math.round(24 / Math.max(1, settings.postsPerDay));
+  const normalizedSettings = normalizePostFrequency(settings);
+  const frequencyUnit = normalizedSettings.postFrequencyUnit;
+  const frequencyValue = frequencyUnit === 'hour' ? normalizedSettings.postsPerHour : normalizedSettings.postsPerDay;
+  const frequencyField = frequencyUnit === 'hour' ? 'postsPerHour' : 'postsPerDay';
+  const frequencyText = frequencyLabel(normalizedSettings);
   return (
     <>
       <header className="page-heading automation-heading">
@@ -96,7 +102,7 @@ export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
 
       <section className={`automation-status ${settings.autoPostEnabled ? 'is-running' : ''}`}>
         <span className="engine-icon"><Bot size={26} /></span>
-        <div><strong>{settings.autoPostEnabled ? '运营引擎正在运行' : '运营引擎已暂停'}</strong><small>{settings.autoPostEnabled ? data.runtime === 'mobile' ? `打开 App 或恢复时检查，约每 ${intervalHours} 小时发布一篇` : `约每 ${intervalHours} 小时发布一篇新帖` : '知识库和社区数据保持不变'}</small></div>
+        <div><strong>{settings.autoPostEnabled ? '运营引擎正在运行' : '运营引擎已暂停'}</strong><small>{settings.autoPostEnabled ? data.runtime === 'mobile' ? `打开 App 或恢复时检查，${frequencyText}` : `后台运行中，${frequencyText}` : '知识库和社区数据保持不变'}</small></div>
         <button className={`button ${settings.autoPostEnabled ? 'button-ghost' : 'button-dark'}`} type="button" onClick={() => save({ autoPostEnabled: !settings.autoPostEnabled })} disabled={saving}>
           {settings.autoPostEnabled ? <Pause size={16} /> : <Play size={16} />}{settings.autoPostEnabled ? '暂停' : '启动'}
         </button>
@@ -107,23 +113,26 @@ export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
         <section className="settings-panel">
           <header><span><CalendarClock size={19} /></span><div><h2>发帖计划</h2><p>自动选择待发布知识点和匹配角色</p></div></header>
           <div className="setting-row">
-            <span><strong>每天发布</strong><small>均匀分布在角色活跃时段</small></span>
-            <div className="stepper">
-              <button type="button" title="减少" onClick={() => save({ postsPerDay: Math.max(1, settings.postsPerDay - 1) })}><Minus size={15} /></button>
-              <strong>{settings.postsPerDay}<small>篇</small></strong>
-              <button type="button" title="增加" onClick={() => save({ postsPerDay: Math.min(12, settings.postsPerDay + 1) })}><Plus size={15} /></button>
+            <span><strong>{frequencyUnit === 'hour' ? '每小时发布' : '每天发布'}</strong><small>均匀分布在角色活跃时段</small></span>
+            <div className="frequency-controls">
+              <SelectMenu value={frequencyUnit} onChange={(value) => save({ postFrequencyUnit: value })} ariaLabel="发帖频率单位" options={[{ value: 'hour', label: '每小时' }, { value: 'day', label: '每天' }]} />
+              <div className="stepper">
+                <button type="button" title="减少" onClick={() => save({ [frequencyField]: Math.max(1, frequencyValue - 1) })}><Minus size={15} /></button>
+                <strong>{frequencyValue}<small>篇</small></strong>
+                <button type="button" title="增加" onClick={() => save({ [frequencyField]: Math.min(frequencyUnit === 'hour' ? 12 : 24, frequencyValue + 1) })}><Plus size={15} /></button>
+              </div>
             </div>
           </div>
           <div className="setting-row">
             <span><strong>默认帖子形式</strong><small>手动生成时仍可单独选择</small></span>
-            <select value={settings.defaultPostType} onChange={(event) => save({ defaultPostType: event.target.value })}>
-              <option value="discussion">讨论帖</option><option value="tutorial">教程帖</option><option value="question">问题帖</option><option value="interview">面试帖</option>
-            </select>
+            <SelectMenu value={settings.defaultPostType} onChange={(value) => save({ defaultPostType: value })} ariaLabel="默认帖子形式" options={[{ value: 'discussion', label: '讨论帖' }, { value: 'tutorial', label: '教程帖' }, { value: 'question', label: '问题帖' }, { value: 'interview', label: '面试帖' }]} />
           </div>
           <div className="schedule-preview">
-            {[9, 15, 21].slice(0, Math.min(3, settings.postsPerDay)).map((hour, index) => (
-              <div key={hour}><span>{String(hour).padStart(2, '0')}:00</span><i /><small>{index === 0 ? '知识帖' : index === 1 ? '讨论帖' : '晚间复盘'}</small></div>
-            ))}
+            {frequencyUnit === 'hour'
+              ? <div className="schedule-note"><Zap size={15} /><span>每小时最多发布 {frequencyValue} 篇，打开 App 时会补检查到期任务</span></div>
+              : [9, 15, 21].slice(0, Math.min(3, frequencyValue)).map((hour, index) => (
+                <div key={hour}><span>{String(hour).padStart(2, '0')}:00</span><i /><small>{index === 0 ? '知识帖' : index === 1 ? '讨论帖' : '晚间复盘'}</small></div>
+              ))}
           </div>
         </section>
 
@@ -136,9 +145,7 @@ export function AutomationPage({ data, onUpdateSettings, onRun, onRefresh }) {
           </label>
           <div className="setting-row">
             <span><strong>模拟回复延迟</strong><small>将在接入任务队列后生效</small></span>
-            <select value={settings.replyDelaySeconds} onChange={(event) => save({ replyDelaySeconds: Number(event.target.value) })}>
-              <option value="0">立即</option><option value="8">约 8 秒</option><option value="30">约 30 秒</option><option value="120">约 2 分钟</option>
-            </select>
+            <SelectMenu value={String(settings.replyDelaySeconds)} onChange={(value) => save({ replyDelaySeconds: Number(value) })} ariaLabel="模拟回复延迟" options={[{ value: '0', label: '立即' }, { value: '8', label: '约 8 秒' }, { value: '30', label: '约 30 秒' }, { value: '120', label: '约 2 分钟' }]} />
           </div>
           <div className="rule-checks">
             <span><CheckCircle2 size={16} />优先由帖子作者回复</span>

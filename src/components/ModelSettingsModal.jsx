@@ -1,6 +1,7 @@
 import { Code2, Eye, EyeOff, KeyRound, RotateCcw, Save, ShieldCheck, Sparkles } from '../icons.jsx';
 import { useState } from 'react';
 import { Modal } from './Modal.jsx';
+import { SelectMenu } from './SelectMenu.jsx';
 import { promptPreview } from '../promptTemplates.js';
 
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
@@ -73,25 +74,20 @@ export function ModelSettingsModal({ config, onClose, onSave }) {
           )}
         </label>
 
-        <label>
+        <div className="field-control">
           <span>模型服务</span>
-          <select value={provider} onChange={(event) => setProviderMode(event.target.value)}>
-            <option value="deepseek">DeepSeek 官方 API</option>
-            <option value="custom">自定义 OpenAI 兼容服务</option>
-          </select>
-        </label>
+          <SelectMenu value={provider} onChange={setProviderMode} ariaLabel="模型服务" options={[{ value: 'deepseek', label: 'DeepSeek 官方 API' }, { value: 'custom', label: '自定义 OpenAI 兼容服务' }]} />
+        </div>
         <div className="form-grid-2">
           <label><span>Base URL</span><input type="url" value={values.baseUrl} readOnly={provider === 'deepseek'} onChange={(event) => setValues({ ...values, baseUrl: event.target.value })} placeholder={DEEPSEEK_BASE_URL} required /></label>
-          <label>
+          <div className="field-control">
             <span>模型名称</span>
             {provider === 'deepseek' ? (
-              <select value={values.model} onChange={(event) => setValues({ ...values, model: event.target.value })}>
-                {DEEPSEEK_MODELS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-              </select>
+              <SelectMenu value={values.model} onChange={(value) => setValues({ ...values, model: value })} ariaLabel="模型名称" options={DEEPSEEK_MODELS} />
             ) : (
               <input value={values.model} onChange={(event) => setValues({ ...values, model: event.target.value })} placeholder="模型名称" required />
             )}
-          </label>
+          </div>
         </div>
 
         <div className="security-note"><ShieldCheck size={17} /><span>{isMobileStorage ? 'Key 只保存在这台手机的应用存储中，不会上传到电脑后端或写入帖子。更换 Key 时直接粘贴新值即可。' : 'Key 只写入本机 `.env.local`，不会进入知识库、帖子或浏览器响应。更换 Key 时直接粘贴新值即可。'}</span></div>

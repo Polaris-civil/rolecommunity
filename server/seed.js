@@ -17,6 +17,7 @@ export function createSeedData() {
       tags: ['PyTorch', '目标检测', '面试'],
       activeHours: '09:00-23:00',
       replyProbability: 0.82,
+      mbti: 'ENFP',
       color: '#ff6246',
     },
     {
@@ -31,6 +32,7 @@ export function createSeedData() {
       tags: ['图像处理', '深度学习', '面试', '学习'],
       activeHours: '09:00-23:00',
       replyProbability: 1,
+      mbti: 'INFP',
       postMode: 'question',
       requiresQa: true,
       color: '#8a67c7',
@@ -47,6 +49,7 @@ export function createSeedData() {
       tags: ['模型部署', '3D视觉', '工程'],
       activeHours: '07:30-22:00',
       replyProbability: 0.68,
+      mbti: 'INTJ',
       color: '#159889',
     },
     {
@@ -61,6 +64,7 @@ export function createSeedData() {
       tags: ['面试', '目标检测', '模型原理'],
       activeHours: '10:00-20:00',
       replyProbability: 0.76,
+      mbti: 'ESTJ',
       color: '#4979d1',
     },
     {
@@ -75,6 +79,7 @@ export function createSeedData() {
       tags: ['多模态', '端侧部署', '效率'],
       activeHours: '09:30-22:30',
       replyProbability: 0.7,
+      mbti: 'ENFJ',
       color: '#d99523',
     },
   ];
@@ -300,7 +305,9 @@ $$y = F(x, W) + x$$
     posts,
     settings: {
       autoPostEnabled: false,
+      postFrequencyUnit: 'day',
       postsPerDay: 3,
+      postsPerHour: 1,
       replyProbability: 0.8,
       replyDelaySeconds: 8,
       defaultPostType: 'discussion',

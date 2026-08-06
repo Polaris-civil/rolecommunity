@@ -87,18 +87,18 @@ export async function generatePost(input) {
   }
 }
 
-export async function generateReply({ post, comment, role, recentReplies = [], knowledge, onUsage, onFallback }) {
+export async function generateReply({ post, comment, parentComment, role, recentReplies = [], knowledge, isThreadReply = false, onUsage, onFallback }) {
   const variation = createVariationBrief({ kind: 'reply', recentReplies });
-  const question = isQuestionComment(comment.content);
+  const question = isQuestionComment(comment.content) || Boolean(parentComment);
   try {
     const result = await callModel([
       {
         role: 'system',
-        content: buildReplySystemPrompt({ role, variation, isQuestion: question }),
+        content: buildReplySystemPrompt({ role, variation, isQuestion: question, isThreadReply }),
       },
       {
         role: 'user',
-        content: buildReplyUserPrompt({ post, comment, knowledge, recentReplies: variation.recentReplies }),
+        content: buildReplyUserPrompt({ post, comment, parentComment, knowledge, recentReplies: variation.recentReplies }),
       },
     ], { temperature: 0.9 });
     if (result) onUsage?.({ ...(result.usage || {}), model: result.model });
@@ -108,7 +108,7 @@ export async function generateReply({ post, comment, role, recentReplies = [], k
   }
 
   onFallback?.();
-  return generateFallbackReply({ post, comment, role, knowledge, variationSeed: variation.seed });
+  return generateFallbackReply({ post, comment, parentComment, role, knowledge, variationSeed: variation.seed });
 }
 
 export async function generateKnowledgeAnswer({ post, knowledge, role, onUsage, onFallback }) {

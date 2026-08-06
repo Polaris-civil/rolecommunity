@@ -18,6 +18,7 @@ import {
 import { useMemo, useRef, useState } from 'react';
 import { MarkdownContent } from '../components/MarkdownContent.jsx';
 import { Modal } from '../components/Modal.jsx';
+import { SelectMenu } from '../components/SelectMenu.jsx';
 import { relativeTime } from '../utils.js';
 
 const emptyEntry = { title: '', content: '', category: '通识', tags: '' };
@@ -79,10 +80,7 @@ function ImportForm({ onImport, onClose, knowledgeBases = [], activeKnowledgeBas
   return (
     <form className="stack-form" onSubmit={submit}>
       <label><span>资料名称</span><input value={sourceName} onChange={(event) => setSourceName(event.target.value)} required /></label>
-      <label><span>归属知识库</span><select value={knowledgeBaseId} onChange={(event) => setKnowledgeBaseId(event.target.value)} required>
-        {knowledgeBases.map((base) => <option key={base.id} value={base.id}>{base.name}</option>)}
-        <option value="new">＋新建一个独立知识库</option>
-      </select></label>
+      <div className="field-control"><span>归属知识库</span><SelectMenu value={knowledgeBaseId} onChange={setKnowledgeBaseId} ariaLabel="归属知识库" options={[...knowledgeBases.map((base) => ({ value: base.id, label: base.name })), { value: 'new', label: '＋新建一个独立知识库' }]} /></div>
       {knowledgeBaseId === 'new' && <label><span>新知识库名称</span><input value={knowledgeBaseName} onChange={(event) => setKnowledgeBaseName(event.target.value)} placeholder="例如：生成式视觉实验室" required /></label>}
       <label><span>Markdown / 纯文本</span><textarea className="import-textarea" value={content} onChange={(event) => setContent(event.target.value)} placeholder={'# HTTP 缓存\n\nCache-Control 用于控制…'} required /></label>
       <footer className="form-actions">
@@ -221,8 +219,8 @@ export function KnowledgePage({ data, query, onImport, onCreate, onUpdate, onDel
                 <button className={status === 'pending' ? 'active' : ''} type="button" onClick={() => setStatus('pending')}>待发布 {data.stats.pending}</button>
                 <button className={status === 'published' ? 'active' : ''} type="button" onClick={() => setStatus('published')}>已发布</button>
               </div>
-              <label className="toolbar-filter"><span>册次</span><select value={part} onChange={(event) => setPart(event.target.value)}><option value="all">全部册次</option>{parts.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-              <label className="toolbar-filter"><span>公司</span><select value={group} onChange={(event) => setGroup(event.target.value)}><option value="all">全部公司</option>{groups.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+              <div className="toolbar-filter"><span>册次</span><SelectMenu value={part} onChange={setPart} ariaLabel="册次" options={[{ value: 'all', label: '全部册次' }, ...parts.map((item) => ({ value: item, label: item }))]} /></div>
+              <div className="toolbar-filter"><span>资料分组</span><SelectMenu value={group} onChange={setGroup} ariaLabel="资料分组" options={[{ value: 'all', label: '全部分组' }, ...groups.map((item) => ({ value: item, label: item }))]} /></div>
             </div>
             <label className="knowledge-local-search"><Search size={15} /><input value={localSearch} onChange={(event) => setLocalSearch(event.target.value)} placeholder="搜索标题、正文、标签" /><small>{filtered.length} 条</small></label>
           </header>

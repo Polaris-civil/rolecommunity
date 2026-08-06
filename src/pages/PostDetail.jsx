@@ -36,6 +36,7 @@ function writeFollowedRoles(ids) {
 
 export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onComment }) {
   const [comment, setComment] = useState('');
+  const [replyTarget, setReplyTarget] = useState(null);
   const [sending, setSending] = useState(false);
   const [shared, setShared] = useState(false);
   const authorId = post.author?.id || post.author?.profileId || post.author?.nickname || '';
@@ -52,8 +53,9 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
     if (!comment.trim()) return;
     setSending(true);
     try {
-      await onComment(post.id, comment.trim());
+      await onComment(post.id, comment.trim(), replyTarget?.id || '');
       setComment('');
+      setReplyTarget(null);
     } finally {
       setSending(false);
     }
@@ -82,10 +84,14 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
     writeFollowedRoles(ids);
   };
 
-  const replyTo = (name) => {
+  const replyTo = (item) => {
+    const name = item.authorProfile?.nickname || item.authorName || '这位朋友';
+    setReplyTarget({ id: item.id, name });
     setComment((current) => current || `@${name} `);
     window.setTimeout(() => commentInputRef.current?.focus(), 0);
   };
+
+  const commentMap = useMemo(() => new Map(post.comments.map((item) => [item.id, item])), [post.comments]);
 
   return (
     <div className="detail-layout">
@@ -125,6 +131,7 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
           <form className="comment-composer" onSubmit={submit}>
             <Avatar name="社区访客" src="https://api.dicebear.com/9.x/initials/svg?seed=社区访客&backgroundColor=dedede" />
             <label>
+              {replyTarget && <span className="comment-reply-target">正在回复 @{replyTarget.name}<button type="button" onClick={() => setReplyTarget(null)} aria-label="取消回复">×</button></span>}
               <textarea ref={commentInputRef} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="说说你的想法…" maxLength="800" />
               <span>{comment.length}/800</span>
               <button className="button button-primary button-small" type="submit" disabled={sending || !comment.trim()}>
@@ -149,8 +156,9 @@ export function PostDetail({ post, roles, isLiked = false, onBack, onLike, onCom
                       {item.replyType === 'answer' && <span className="qa-comment-label answer">答疑</span>}
                       <time>{relativeTime(item.createdAt)}</time>
                     </div>
+                    {item.replyToCommentId && commentMap.get(item.replyToCommentId) && <div className="comment-reply-context">回复 @{commentMap.get(item.replyToCommentId).authorProfile?.nickname || commentMap.get(item.replyToCommentId).authorName || '这位朋友'}</div>}
                     <p>{item.content}</p>
-                    <button type="button" onClick={() => replyTo(actor?.nickname || item.authorName || '这位朋友')}>回复</button>
+                    <button type="button" onClick={() => replyTo(item)}>回复</button>
                   </div>
                 </div>
               );

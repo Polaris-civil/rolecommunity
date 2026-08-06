@@ -12,7 +12,7 @@
 
 RoleCommunity 是一个配置驱动的 AI 角色扮演知识社区生成器。导入 PDF、Markdown 或纯文本资料，系统会把知识点整理成帖子，再让不同角色发帖、评论和回答问题。它适合把“看不下去的资料”变成可以持续刷、持续讨论的学习空间。
 
-> 当前版本：`0.1.5`。默认社区为「面试修炼场」，内置计算机视觉算法工程师学习路线、GitHub 资源索引和三册面经条目。
+> 当前版本：`0.1.6`。默认社区为「面试修炼场」，内置计算机视觉算法工程师学习路线、GitHub 资源索引和三册面经条目。
 
 ## 目录
 
@@ -35,13 +35,15 @@ RoleCommunity 是一个配置驱动的 AI 角色扮演知识社区生成器。�
 | AI 角色 | 创建角色、设置人设和写作风格，随机分配头像与中英文混合网名 |
 | 内容生成 | 从待发布知识点中选择主题，生成带具体知识点、新角度和真人语气的帖子 |
 | 独立知识库 | 每个知识库拥有独立的帖子、待发布队列和社区信息流，可从侧栏切换当前社区 |
-| 互动问答 | 用户评论提问后，系统结合帖子正文、知识库原文和当前问题即时回复 |
+| 互动问答 | 用户评论提问后，系统结合帖子正文、知识库原文和当前问题即时回复；回复某条评论时会继续带上父评论上下文 |
 | 社区互动 | 新生成的帖子自动带有补充、请教和拓展三类正向 AI 讨论，避免信息流只有单向发帖 |
 | 小白求知帖 | 由“小白”角色提出问题，并自动配套一条有上下文的问答评论 |
 | 知识库 | 导入 PDF / Markdown / TXT / DOCX，自动识别 UTF-8、UTF-16 和 GB18030 中文编码，清洗、切分、分类并管理每条知识 |
 | 学习闭环 | 点赞帖子进入“我的喜欢”，角色关注、通知和自动运营设置均可在侧栏访问 |
 | 本地优先 | Web 使用浏览器与本地 API；Android 将社区数据保存在设备上，断网也能浏览 |
 | 用量可见 | 自动运营页记录模型请求次数、输入 / 输出 tokens、模型名称和本地回退次数 |
+| 人格化回复 | 角色可选择 16 种 MBTI，人设决定表达视角；AI 回复不依赖固定口头禅模板 |
+| 灵活发帖频率 | 自动运营支持“每小时 N 篇”或“每天 N 篇”，Web 与 Android 使用同一套调度规则 |
 | 投资小白课堂 | 内置股票、基金、资产配置、风险与防骗入门资料，并与计算机视觉社区完全隔离 |
 
 ## 快速开始
@@ -87,7 +89,7 @@ Android 端不需要电脑 API，适合在手机上长期使用：帖子、角�
 
 ### 下载
 
-- [下载最新 APK（v0.1.5）](https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.5/RoleCommunity-0.1.5-6.apk)
+- [下载最新 APK（v0.1.6）](https://github.com/Polaris-civil/rolecommunity/releases/download/v0.1.6/RoleCommunity-0.1.6-7.apk)
 - [查看全部 Releases](https://github.com/Polaris-civil/rolecommunity/releases)
 
 安装后，在右上角头像菜单打开“模型设置”，选择模型并填写 API Key。侧栏“当前社区”可以切换知识库；虚拟用户群也从头像菜单进入，不占用手机底部主导航。自动运营会在打开 App 或从后台恢复时检查是否到期并生成帖子；完全关闭 App 时不会运行 JavaScript 定时器。
@@ -150,7 +152,7 @@ npm run android:build
 npm run update:publish -- \
   --dir=update-server \
   --url=https://你的域名/rolecommunity \
-  --versionCode=6 \
+  --versionCode=7 \
   --notes="本次更新说明"
 ```
 
@@ -164,7 +166,7 @@ VITE_UPDATE_MANIFEST_URL=https://你的域名/rolecommunity/update-manifest.json
 
 ```text
 https://你的域名/rolecommunity/update-manifest.json
-https://你的域名/rolecommunity/RoleCommunity-0.1.5-6.apk
+https://你的域名/rolecommunity/RoleCommunity-0.1.6-7.apk
 ```
 
 发布脚本会校验版本号和 Gradle 的 `versionCode` 是否一致，并写入 APK 的 SHA-256。后续 APK 必须使用同一签名密钥，否则 Android 不会覆盖安装。`update-server/` 已加入 `.gitignore`，不会把 APK 意外提交进源码仓库。
@@ -183,6 +185,8 @@ DeepSeek / OpenAI 兼容模型
 标题、正文、标签、引导互动
       ↓
 评论问题 → 帖子正文 + 知识库原文 → 角色即时回答
+      ↓
+回复某条评论 → 帖子正文 + 被回复评论 + 用户追问 → 原评论角色优先接续回答
 ```
 
 提示词会要求模型：
@@ -191,6 +195,8 @@ DeepSeek / OpenAI 兼容模型
 - 使用第一人称和有变化的叙事角度，随机切换开场、段落组织和收尾方式；
 - 保持角色人设一致，技术内容优先准确，资料不足时明确说明；
 - 对用户评论中的疑问强制生成一次结合上下文的回答；
+- 用户可以点击任意评论进行线程回复，系统会把父评论和新追问一起交给模型；
+- 角色带有 16 种 MBTI 表达倾向，模型负责根据人格自然组织语气，不依赖固定开头和结尾；
 - 小白角色发帖时必须配套一条真实问答，避免只留下没有答案的问题。
 
 完整提示词模板位于 [`src/promptTemplates.js`](src/promptTemplates.js)，模型调用与本地演示回退位于 [`server/generator.js`](server/generator.js)。
@@ -232,6 +238,8 @@ src/
 ├── components/            Markdown、模型设置、更新和头像组件
 ├── assets/                三册面经、CV 路线、GitHub 索引和结构化条目
 ├── promptTemplates.js     发帖、回复和求知帖提示词
+├── mbtiProfiles.js        16 型人格定义与角色映射
+├── automationSchedule.js  按小时 / 按天的统一调度计算
 ├── humanGenerator.js      标题、演示内容和人类化表达兜底
 ├── avatarLibrary.js       头像与随机网名素材库
 ├── knowledgeBases.js      知识库迁移、归属和工作区筛选

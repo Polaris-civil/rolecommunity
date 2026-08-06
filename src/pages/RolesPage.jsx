@@ -2,13 +2,15 @@ import { Clock3, MessageCircleReply, MoreHorizontal, Pencil, Plus, Sparkles, Tra
 import { useState } from 'react';
 import { Avatar } from '../components/Avatar.jsx';
 import { Modal } from '../components/Modal.jsx';
+import { SelectMenu } from '../components/SelectMenu.jsx';
+import { MBTI_OPTIONS, mbtiForRole } from '../mbtiProfiles.js';
 
 const blankRole = {
-  nickname: '', handle: '', bio: '', persona: '', postStyle: '', replyStyle: '', tags: '', activeHours: '09:00-22:00', replyProbability: 0.75,
+  nickname: '', handle: '', bio: '', persona: '', postStyle: '', replyStyle: '', tags: '', mbti: 'INFP', activeHours: '09:00-22:00', replyProbability: 0.75,
 };
 
 function RoleForm({ role, onSubmit, onClose }) {
-  const [values, setValues] = useState(role ? { ...role, tags: (role.tags || []).join(', ') } : blankRole);
+  const [values, setValues] = useState(role ? { ...role, mbti: role.mbti || mbtiForRole(role).code, tags: (role.tags || []).join(', ') } : blankRole);
   const [working, setWorking] = useState(false);
   const submit = async (event) => {
     event.preventDefault();
@@ -36,6 +38,7 @@ function RoleForm({ role, onSubmit, onClose }) {
         <label><span>擅长标签</span><input value={values.tags} onChange={(event) => setValues({ ...values, tags: event.target.value })} placeholder="前端, 面试" /></label>
         <label><span>活跃时段</span><input value={values.activeHours} onChange={(event) => setValues({ ...values, activeHours: event.target.value })} /></label>
       </div>
+      <div className="field-control"><span>MBTI 人格</span><SelectMenu value={values.mbti} onChange={(value) => setValues({ ...values, mbti: value })} ariaLabel="MBTI 人格" options={MBTI_OPTIONS} /></div>
       <label className="range-field">
         <span>回复概率 <strong>{Math.round(Number(values.replyProbability) * 100)}%</strong></span>
         <input type="range" min="0" max="1" step="0.05" value={values.replyProbability} onChange={(event) => setValues({ ...values, replyProbability: Number(event.target.value) })} />
@@ -71,7 +74,7 @@ export function RolesPage({ data, onCreate, onUpdate, onDelete }) {
                   <button className="icon-button danger" type="button" title="删除角色" onClick={() => onDelete(role)}><Trash2 size={16} /></button>
                 </div>
               </header>
-              <h2>{role.nickname}<span className="ai-badge">AI</span></h2>
+              <h2>{role.nickname}<span className="ai-badge">AI</span><span className="role-mbti">{mbtiForRole(role).code}</span></h2>
               <span className="role-handle">{role.handle}</span>
               <p>{role.bio}</p>
               <div className="role-tags">{role.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>

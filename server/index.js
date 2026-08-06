@@ -11,6 +11,8 @@ import { decodeTextBuffer } from '../src/textEncoding.js';
 import { chooseReplyRole, isQuestionComment } from '../src/replyRouting.js';
 import { addKnowledgeBase, ensureKnowledgeBases } from '../src/knowledgeBases.js';
 import { recordFallbackUsage, recordTokenUsage, summarizeUsage } from '../src/usage.js';
+import { normalizeMbti } from '../src/mbtiProfiles.js';
+import { intervalMs, normalizePostFrequency } from '../src/automationSchedule.js';
 import { extractKnowledge } from './content.js';
 import { generateKnowledgeAnswer, generatePost, generateReply } from './generator.js';
 import { loadRuntimeConfig, publicRuntimeConfig, saveRuntimeConfig } from './runtime-config.js';
@@ -55,7 +57,7 @@ function appendCommunityComments(store, post, knowledge, author) {
       id: `comment-${randomUUID()}`,
       authorId: role.id,
       authorProfile: randomProfile(),
-      content: generateCommunityComment({ post, knowledge, kind, variationSeed: `${post.id}:${kind}:${index}` }),
+      content: generateCommunityComment({ post, knowledge, role, kind, variationSeed: `${post.id}:${kind}:${index}` }),
       createdAt: new Date().toISOString(),
       isAi: true,
       commentType: kind,
@@ -236,11 +238,16 @@ app.post('/api/posts/:id/comments', withErrorHandling(async (req, res) => {
   const content = String(req.body?.content || '').trim();
   if (!content) throw Object.assign(new Error('评论内容不能为空'), { status: 400 });
   if (content.length > 800) throw Object.assign(new Error('评论不能超过 800 字'), { status: 400 });
+  const replyToCommentId = String(req.body?.replyToCommentId || '').trim();
 
   const result = await updateStore(async (store) => {
     const post = store.posts.find((item) => item.id === req.params.id);
     if (!post) throw Object.assign(new Error('帖子不存在'), { status: 404 });
-    const question = isQuestionComment(content);
+    const parentComment = replyToCommentId ? post.comments.find((item) => item.id === replyToCommentId) : null;
+    if (replyToCommentId && !parentComment) throw Object.assign(new Error('要回复的评论不存在或已被删除'), { status: 400 });
+    const directQuestion = isQuestionComment(content);
+    const isThreadReply = Boolean(parentComment);
+    const question = directQuestion || Boolean(parentComment && isQuestionComment(parentComment.content));
     const knowledge = store.knowledge.find((item) => item.id === post.knowledgeId);
     const comment = {
       id: `comment-${randomUUID()}`,
@@ -251,14 +258,16 @@ app.post('/api/posts/:id/comments', withErrorHandling(async (req, res) => {
       isAi: false,
       isQuestion: question,
       intent: question ? 'question' : 'comment',
+      ...(parentComment ? { replyToCommentId: parentComment.id } : {}),
     };
     post.comments.push(comment);
 
     const author = roleFor(store, post);
-    const responder = question ? chooseReplyRole(store, post, author) : author;
+    const parentRole = parentComment?.authorId ? store.roles.find((role) => role.id === parentComment.authorId) : null;
+    const responder = isThreadReply && parentRole ? parentRole : (question ? chooseReplyRole(store, post, author) : author);
     let aiReply = null;
     const probability = responder?.replyProbability ?? store.settings.replyProbability;
-    if (responder && (question || Math.random() <= probability)) {
+    if (responder && (isThreadReply || question || Math.random() <= probability)) {
       aiReply = {
         id: `comment-${randomUUID()}`,
         authorId: responder.id,
@@ -266,7 +275,9 @@ app.post('/api/posts/:id/comments', withErrorHandling(async (req, res) => {
         content: await generateReply({
           post,
           comment,
+          parentComment,
           role: responder,
+          isThreadReply,
           knowledge,
           recentReplies: post.comments.filter((item) => item.isAi).map((item) => item.content),
           onUsage: (usage) => recordTokenUsage(store, usage, 'reply'),
@@ -281,12 +292,12 @@ app.post('/api/posts/:id/comments', withErrorHandling(async (req, res) => {
       store.activity.unshift({
         id: `activity-${randomUUID()}`,
         type: 'reply',
-        text: `${responder.nickname} ${question ? '回答了' : '回复了'}社区访客`,
+        text: `${responder.nickname} ${isThreadReply ? '接着评论回答了' : question ? '回答了' : '回复了'}社区访客`,
         createdAt: aiReply.createdAt,
         knowledgeBaseId: post.knowledgeBaseId,
       });
     }
-    return { comment, aiReply, author: responder || author, responder: responder || author, isQuestion: question, immediate: question };
+    return { comment, aiReply, author: responder || author, responder: responder || author, isQuestion: question, isThreadReply, immediate: question || isThreadReply };
   });
   res.status(201).json(result);
 }));
@@ -409,6 +420,7 @@ app.post('/api/roles', withErrorHandling(async (req, res) => {
     tags: Array.isArray(req.body?.tags) ? req.body.tags.slice(0, 6) : [],
     activeHours: String(req.body?.activeHours || '09:00-22:00'),
     replyProbability: Number(req.body?.replyProbability ?? 0.75),
+    mbti: normalizeMbti(req.body?.mbti),
     color: req.body?.color || '#159889',
   };
   await updateStore((store) => store.roles.push(role));
@@ -419,9 +431,10 @@ app.patch('/api/roles/:id', withErrorHandling(async (req, res) => {
   const role = await updateStore((store) => {
     const current = store.roles.find((item) => item.id === req.params.id);
     if (!current) throw Object.assign(new Error('角色不存在'), { status: 404 });
-    for (const key of ['nickname', 'handle', 'avatar', 'bio', 'persona', 'postStyle', 'replyStyle', 'tags', 'activeHours', 'replyProbability', 'color']) {
+    for (const key of ['nickname', 'handle', 'avatar', 'bio', 'persona', 'postStyle', 'replyStyle', 'tags', 'activeHours', 'replyProbability', 'mbti', 'color']) {
       if (req.body?.[key] !== undefined) current[key] = req.body[key];
     }
+    if (req.body?.mbti !== undefined) current.mbti = normalizeMbti(req.body.mbti);
     return current;
   });
   res.json(role);
@@ -442,10 +455,11 @@ app.delete('/api/roles/:id', withErrorHandling(async (req, res) => {
 app.patch('/api/settings', withErrorHandling(async (req, res) => {
   const settings = await updateStore((store) => {
     ensureKnowledgeBases(store);
-    const allowed = ['autoPostEnabled', 'postsPerDay', 'replyProbability', 'replyDelaySeconds', 'defaultPostType'];
+    const allowed = ['autoPostEnabled', 'postFrequencyUnit', 'postsPerDay', 'postsPerHour', 'replyProbability', 'replyDelaySeconds', 'defaultPostType'];
     for (const key of allowed) {
       if (req.body?.[key] !== undefined) store.settings[key] = req.body[key];
     }
+    Object.assign(store.settings, normalizePostFrequency(store.settings));
     if (req.body?.activeKnowledgeBaseId !== undefined
       && store.knowledgeBases.some((base) => base.id === req.body.activeKnowledgeBaseId)) {
       store.settings.activeKnowledgeBaseId = req.body.activeKnowledgeBaseId;
@@ -468,7 +482,7 @@ setInterval(async () => {
   try {
     await updateStore(async (store) => {
       if (!store.settings.autoPostEnabled) return;
-      const interval = (24 * 60 * 60 * 1000) / Math.max(1, Number(store.settings.postsPerDay));
+      const interval = intervalMs(store.settings);
       const elapsed = Date.now() - new Date(store.settings.lastGeneratedAt || 0).getTime();
       if (elapsed >= interval && store.knowledge.some((item) => item.status === 'pending' && item.knowledgeBaseId === store.settings.activeKnowledgeBaseId)) {
         await publishKnowledge(store, { type: store.settings.defaultPostType, knowledgeBaseId: store.settings.activeKnowledgeBaseId });

@@ -1,3 +1,5 @@
+import { mbtiForRole } from './mbtiProfiles.js';
+
 export const postTypeLabels = {
   discussion: '讨论帖',
   tutorial: '教程帖',
@@ -75,6 +77,7 @@ function recentTitleText(titles = []) {
 }
 
 export function buildPostSystemPrompt({ role, variation = DEFAULT_POST_VARIATION }) {
+  const mbti = mbtiForRole(role);
   return `你在运营一个知识社区，并严格扮演指定角色。只返回 JSON：{"title":"","excerpt":"","body":"Markdown","category":"","tags":[""]}。
 
 你写的是一个真实用户发出的帖子，不是课程讲义、产品文案或 AI 总结。内容必须准确，只能把资料支持的事实写成帖子；可以合理虚构轻量的个人阅读、面试或排查场景，但不能凭空增加公司名、项目名、数字、结论或资料之外的技术事实。
@@ -88,7 +91,9 @@ export function buildPostSystemPrompt({ role, variation = DEFAULT_POST_VARIATION
 标题必须从资料正文里凝练出一个具体知识点、判断条件、反例、误区或面试追问，不能直接复制章节名，也不能只写“学习笔记”“知识点总结”这类空标题。优先使用反直觉冲突、结果导向、场景化追问、相邻概念对比或一个新奇切入角度；标题控制在 12-36 个汉字或等长字符，读者只看标题也要知道这篇在讨论什么。不要凭空添加资料没有的数字、公司、结论或经历，不要套用固定的“震惊/必看/太香了”标题党词。标题不要复用近期帖子的句式或高频词。正文结构可以自由选择，不要固定使用相同的标题层级。Markdown 可以使用标题、列表、代码块和 KaTeX 数学公式（行内用 $...$，独立公式用 $$...$$）。
 
 角色人设：${role.persona}
-发帖风格：${role.postStyle}`;
+发帖风格：${role.postStyle}
+MBTI 类型：${mbti.code}（${mbti.name}）。表达倾向：${mbti.summary} ${mbti.replyGuidance}
+请让内容自然体现这种倾向，但不要直接写出 MBTI 名称，也不要把人格特征变成固定口头禅。`;
 }
 
 export function buildPostUserPrompt({ knowledge, type, variation = DEFAULT_POST_VARIATION }) {
@@ -102,12 +107,16 @@ export function buildPostUserPrompt({ knowledge, type, variation = DEFAULT_POST_
 避免复用的近期帖子标题/开头：${recentTitleText(variation.recentTitles || [])}`;
 }
 
-export function buildReplySystemPrompt({ role, variation = {}, isQuestion = false }) {
-  return `你是社区角色“${role.nickname}”。人设：${role.persona}
+export function buildReplySystemPrompt({ role, variation = {}, isQuestion = false, isThreadReply = false }) {
+  const mbti = mbtiForRole(role);
+  return `你是社区角色“${role.nickname}”。MBTI 类型：${mbti.code}（${mbti.name}）。
+MBTI 倾向：${mbti.summary}
+本次表达建议：${mbti.replyGuidance}
+补充人设：${role.persona}
 回复风格：${role.replyStyle}
 
-请像真实用户在帖子下回复，直接回应对方评论里的具体词句，不要写成客服话术、标准答案或整篇总结。${isQuestion ? '这是一个明确的提问，必须结合帖子正文和知识库原文先给出回答，再解释依据；如果资料不足，要明确说出缺少的条件，不能只回复“同问”或把问题推回去。' : ''} ${variation.replyIntent || '本次回复选择一个不同的回应意图。'}
-控制在 25-120 字，句式和开头要有变化；可以承认自己也踩过坑，也可以保留一点不确定，但不要编造资料之外的事实。最多使用一个 emoji，不要强行使用。不要使用“这个问题抓得很准”“建议先确认”“希望对你有帮助”等固定套话，不要自称 AI，不要输出 JSON。可以使用 Markdown 粗体。`;
+请像真实用户在帖子下回复，直接回应对方话里的具体词句，不要写成客服话术、标准答案或整篇总结。${isThreadReply ? '这是对一条已有评论的继续回复，必须先理解被回复评论，再回应用户这次追问；不要假装这是一个独立问题。' : ''}${isQuestion ? '这是一个明确的提问，必须结合帖子正文和知识库原文先给出回答，再解释依据；如果资料不足，要明确说出缺少的条件，不能只回复“同问”或把问题推回去。' : ''} ${variation.replyIntent || '根据当前 MBTI 倾向自然选择回应顺序，不要套用固定开头或结尾。'}
+控制在 25-160 字，句式和开头要有变化；可以承认自己也踩过坑，也可以保留一点不确定，但不要编造资料之外的事实。最多使用一个 emoji，不要强行使用，不要自称 AI，不要输出 JSON。可以使用 Markdown 粗体。`;
 }
 
 function contextBlock(value, limit = 8000) {
@@ -116,10 +125,13 @@ function contextBlock(value, limit = 8000) {
   return text.length > limit ? `${text.slice(0, limit)}\n[上下文过长，已截取前 ${limit} 字]` : text;
 }
 
-export function buildReplyUserPrompt({ post, comment, recentReplies = [], knowledge }) {
+export function buildReplyUserPrompt({ post, comment, parentComment, recentReplies = [], knowledge }) {
   const knowledgeText = knowledge
     ? `资料标题：${knowledge.title || '未命名'}\n资料原文：${contextBlock(knowledge.content, 8000)}`
     : '（这篇帖子没有找到关联的知识库原文）';
+  const parentText = parentComment && parentComment.id !== comment.id
+    ? `被回复的评论：${contextBlock(parentComment.content, 1800)}\n这条评论的作者：${parentComment.authorName || parentComment.authorProfile?.nickname || '社区角色'}\n用户这次的回复：${contextBlock(comment.content, 1800)}`
+    : `用户评论：${contextBlock(comment.content, 1800)}`;
   return `帖子标题：${post.title}
 帖子分类：${post.category || '未分类'}
 帖子标签：${(post.tags || []).join('、')}
@@ -127,9 +139,9 @@ export function buildReplyUserPrompt({ post, comment, recentReplies = [], knowle
 ${contextBlock(post.body || post.excerpt, 8000)}
 关联知识库原文（用于核对事实）：
 ${knowledgeText}
-对方评论：${comment.content}
+${parentText}
 本帖已有 AI 回复（避免复用表达）：${recentReplies.length ? recentReplies.join(' | ') : '暂无'}
-请针对评论中的具体问题作答；不要脱离帖子正文泛泛科普，也不要把未出现在上下文里的内容说成事实。`;
+请针对当前用户这次发言作答；如果存在被回复的评论，先承接它的观点或疑问，再回答用户的新问题。不要脱离帖子正文泛泛科普，也不要把未出现在上下文里的内容说成事实。`;
 }
 
 export function buildKnowledgeAnswerSystemPrompt({ role, variation = {} }) {
@@ -167,8 +179,9 @@ export const promptPreview = {
     role: { nickname: '角色昵称', persona: '角色人设', replyStyle: '回复风格' },
     variation: { replyIntent: '先接住对方的具体疑问，再补一个容易忽略的前提。' },
     isQuestion: true,
+    isThreadReply: true,
   }),
-  replyUser: buildReplyUserPrompt({ post: { title: '帖子标题', category: '分类', tags: ['标签'], body: '帖子正文和知识点上下文' }, knowledge: { title: '关联资料', content: '知识库原文' }, comment: { content: '用户评论' }, recentReplies: ['上一条回复示例'] }),
+  replyUser: buildReplyUserPrompt({ post: { title: '帖子标题', category: '分类', tags: ['标签'], body: '帖子正文和知识点上下文' }, knowledge: { title: '关联资料', content: '知识库原文' }, comment: { id: 'user-reply', content: '用户回复' }, parentComment: { id: 'parent-comment', content: '被回复的评论' }, recentReplies: ['上一条回复示例'] }),
   answerSystem: buildKnowledgeAnswerSystemPrompt({
     role: { nickname: '答疑角色', persona: '耐心、注重解释前提', replyStyle: '先回应困惑，再补关键原因' },
     variation: { answerShape: '先用一句话回答，再解释资料中支撑这句话的关键原因。' },

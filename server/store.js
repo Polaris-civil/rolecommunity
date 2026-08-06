@@ -7,6 +7,8 @@ import { AVATAR_LIBRARY_VERSION, profileForSeed } from '../src/avatarLibrary.js'
 import { generateCommunityComment, ensureCatchyTitle } from '../src/humanGenerator.js';
 import { ensureKnowledgeBases } from '../src/knowledgeBases.js';
 import { emptyUsage } from '../src/usage.js';
+import { mbtiForRole } from '../src/mbtiProfiles.js';
+import { normalizePostFrequency } from '../src/automationSchedule.js';
 
 const serverDir = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.resolve(serverDir, '../data');
@@ -92,7 +94,7 @@ function ensurePostEngagement(store) {
         id: `comment-migrated-${post.id}-${kind}`,
         authorId: role.id,
         authorProfile: profileForSeed(`${post.id}:${kind}`),
-        content: generateCommunityComment({ post, knowledge, kind, variationSeed: `${post.id}:migrated:${kind}` }),
+        content: generateCommunityComment({ post, knowledge, role, kind, variationSeed: `${post.id}:migrated:${kind}` }),
         createdAt: post.createdAt,
         isAi: true,
         commentType: kind,
@@ -112,6 +114,8 @@ async function ensureStore() {
       const store = JSON.parse(contents);
       const originalStore = JSON.stringify(store);
       ensureKnowledgeBases(store);
+      store.settings = normalizePostFrequency(store.settings || {});
+      for (const role of store.roles || []) role.mbti = mbtiForRole(role).code;
       if (!store.usage) store.usage = emptyUsage();
       const builtins = createBuiltinKnowledge();
       const builtinById = new Map(builtins.map((item) => [item.id, item]));

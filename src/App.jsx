@@ -334,11 +334,11 @@ export default function App() {
         isLiked={likedPostIds.includes(selectedPost.id)}
         onBack={() => setSelectedPost(null)}
         onLike={(id, active) => run(() => toggleLikedPost(id, active))}
-        onComment={(id, content) => run(async () => {
-          const result = await api.comment(id, { authorName: '社区访客', content });
+        onComment={(id, content, replyToCommentId) => run(async () => {
+          const result = await api.comment(id, { authorName: '社区访客', content, replyToCommentId });
           await updateSelectedPost(id);
           notify(result.aiReply
-            ? (result.isQuestion ? `${result.author.nickname} 已结合正文回答了你的问题` : `${result.author.nickname} 回复了你的评论`)
+            ? (result.isThreadReply ? `${result.author.nickname} 已接着这条评论回答` : result.isQuestion ? `${result.author.nickname} 已结合正文回答了你的问题` : `${result.author.nickname} 回复了你的评论`)
             : '评论已发布');
         })}
       />

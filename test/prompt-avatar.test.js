@@ -5,6 +5,7 @@ import { generateCommunityComment, generateFallbackKnowledgeAnswer, generateFall
 import { buildPostSystemPrompt, buildPostUserPrompt, buildReplySystemPrompt, buildReplyUserPrompt, promptPreview } from '../src/promptTemplates.js';
 import { chooseReplyRole, isQuestionComment } from '../src/replyRouting.js';
 import { createBuiltinKnowledge } from '../src/builtinKnowledge.js';
+import { MBTI_OPTIONS, mbtiForRole } from '../src/mbtiProfiles.js';
 
 const builtinKnowledge = createBuiltinKnowledge();
 
@@ -41,6 +42,18 @@ test('generation prompt exposes role, source and math-format constraints', () =>
   assert.match(replyPrompt, /知识库原文/);
   assert.match(replyPrompt, /已有回复/);
   assert.match(buildReplySystemPrompt({ role: { nickname: '角色', persona: '人设', replyStyle: '具体' }, isQuestion: true }), /知识库原文/);
+});
+
+test('reply prompts preserve parent comment context and roles expose all MBTI types', () => {
+  assert.equal(MBTI_OPTIONS.length, 16);
+  assert.equal(mbtiForRole({ id: 'role-architect' }).code, 'INTJ');
+  const prompt = buildReplyUserPrompt({
+    post: { title: '帖子', category: '视觉', body: '帖子正文' },
+    comment: { id: 'reply', content: '我还是不明白这里为什么这样做' },
+    parentComment: { id: 'parent', authorName: '北城架构师', content: '先看输入条件，再看输出' },
+  });
+  assert.match(prompt, /被回复的评论[s\S]*先看输入条件/);
+  assert.match(prompt, /用户这次的回复[s\S]*我还是不明白/);
 });
 
 test('fallback generation varies post structure and replies', () => {

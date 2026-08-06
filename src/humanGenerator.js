@@ -1,5 +1,6 @@
 import { postTypeLabels } from './promptTemplates.js';
 import { isQuestionComment } from './replyRouting.js';
+import { mbtiForRole } from './mbtiProfiles.js';
 
 function hashSeed(value) {
   let hash = 0;
@@ -259,12 +260,17 @@ const communityCommentVariants = {
   ],
 };
 
-export function generateCommunityComment({ post, knowledge, kind = 'explain', variationSeed } = {}) {
+export function generateCommunityComment({ post, knowledge, role, kind = 'explain', variationSeed } = {}) {
   const seed = variationSeed || `${post?.id || post?.title}:${knowledge?.id || knowledge?.title}:${kind}`;
+  const mbti = mbtiForRole(role);
   const topic = clip(cleanTitle(post?.title || knowledge?.title).replace(/[「」]/g, ''), 24);
   const source = clip(plainText(knowledge?.content || post?.body || post?.excerpt), 34);
   const variants = communityCommentVariants[kind] || communityCommentVariants.explain;
-  return choose(variants, seed)({ topic: topic || '这个知识点', source: source || '正文里的关键条件' });
+  const base = choose(variants, seed)({ topic: topic || '这个知识点', source: source || '正文里的关键条件' });
+  const lens = choose(mbti.code[2] === 'T'
+    ? ['我会把依据和结论分开核对。', '我更想再确认一下它成立的边界。']
+    : ['希望这能让刚开始学的人少绕一点。', '我也想换个例子继续验证这个判断。'], seed, 7);
+  return `${base} ${lens}`;
 }
 
 const replyVariants = [
@@ -283,15 +289,39 @@ const questionReplyVariants = [
   ({ topic, quote, context }) => `我会这样拆“${quote}”：正文先说明了“${context}”，所以第一步不是直接套答案，而是确认当前场景是否满足这个条件。`,
 ];
 
-export function generateFallbackReply({ post, comment, role, knowledge, variationSeed } = {}) {
+export function generateFallbackReply({ post, comment, parentComment, role, knowledge, variationSeed } = {}) {
   const seed = variationSeed || `${post.id || post.title}:${comment.id || comment.content}:${role.id || role.nickname}`;
+  const mbti = mbtiForRole(role);
   const quote = clip(comment.content, 24).replace(/[“”"']/g, '');
+  const parentQuote = parentComment ? clip(parentComment.content, 28).replace(/[“”"']/g, '') : '';
   const topic = post.category ? `${post.category}这块` : cleanTitle(post.title).split(/[：:，,?？]/)[0].slice(0, 20);
-  const context = clip(plainText([post.body || post.excerpt, knowledge?.content].filter(Boolean).join(' 资料补充：')), 120);
+  const context = clip(plainText([post.body || post.excerpt, parentComment?.content, knowledge?.content].filter(Boolean).join(' 资料补充：')), 150);
+  const intro = choose(mbti.code[0] === 'E'
+    ? ['我顺着你这句往下想了一步：', '你这个追问可以接着正文看：', '我会把这件事放回实际场景里看：']
+    : ['我先把条件拆开看：', '我读到这里时也会先核对一个前提：', '按正文的线索，我会这样接：'], seed, 2);
+  const method = choose(mbti.code[2] === 'T'
+    ? ['关键不在结论本身，而在它成立的条件。', '先把输入、过程和结果分开，判断会更稳。', '这里最好留一个边界，不能把这个结论说成所有情况都成立。']
+    : ['你卡住的地方很正常，换个具体场景再走一遍会更清楚。', '我会先回应你真正想确认的那一步，再补细节。', '这条线索可以继续往下验证，不用急着一次记完。'], seed, 3);
+  const close = choose(mbti.code[3] === 'J'
+    ? ['所以我会先检查这个条件，再决定下一步。', '按这个顺序走，基本能定位问题在哪里。', '先把范围定住，再讨论优化会更有效。']
+    : ['如果你愿意，可以拿一个反例再试一次。', '我也会保留这个问题，换个例子继续验证。', '你可以先按这个方向走一遍，看哪一步最不顺。'], seed, 4);
+  const relation = parentQuote ? `你刚才提到“${parentQuote}”，我接着回应：` : '';
+  if ((isQuestionComment(comment.content) || parentComment) && context) {
+    const sourceCue = `正文里的线索是“${clip(context, 100)}”。`;
+    return `${intro}${relation}${choose([
+      `帖子和这条评论都指向同一个前提，${sourceCue}`,
+      `结合正文再看这条追问，${sourceCue}`,
+      `我会先回答你现在这一步，${sourceCue}`,
+    ], seed, 5)}${method}${close}`;
+  }
+  if (parentComment) return `${intro}${relation}${method}${close}`;
   if (isQuestionComment(comment.content) && context) {
     return choose(questionReplyVariants, seed)({ topic, quote, context });
   }
-  return choose(replyVariants, seed)({ topic, quote });
+  const perspective = choose(mbti.code[1] === 'S'
+    ? ['我会先落到一个具体场景，再看这个判断是否成立。', '把输入、过程和结果分开记录，通常比背一句结论更稳。']
+    : ['我想顺着这个观点再联想到一个相邻问题，看看边界在哪里。', '这条信息还可以和前后的概念连起来看，可能会得到另一种解释。'], seed, 6);
+  return `${intro}${relation}${quote ? `你提到“${quote}”，` : ''}${perspective}${method}${close}`;
 }
 
 const answerOpeners = [

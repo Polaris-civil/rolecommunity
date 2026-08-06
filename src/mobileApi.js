@@ -23,6 +23,8 @@ import {
   buildReplyUserPrompt,
   createVariationBrief,
 } from './promptTemplates.js';
+import { mbtiForRole, normalizeMbti } from './mbtiProfiles.js';
+import { intervalMs, normalizePostFrequency } from './automationSchedule.js';
 
 const STORE_KEY = 'rolecommunity.mobile.store.v2';
 const LEGACY_STORE_KEY = 'rolecommunity.mobile.store.v1';
@@ -91,6 +93,8 @@ function readStore() {
 
 function normalizeStore(store) {
   ensureKnowledgeBases(store);
+  store.settings = normalizePostFrequency(store.settings || {});
+  for (const role of store.roles || []) role.mbti = mbtiForRole(role).code;
   ensurePostEngagement(store);
   if (!store.usage) store.usage = emptyUsage();
   return store;
@@ -170,7 +174,7 @@ function ensurePostEngagement(store) {
         id: `comment-migrated-${post.id}-${kind}`,
         authorId: role.id,
         authorProfile: profileForSeed(`${post.id}:${kind}`),
-        content: generateCommunityComment({ post, knowledge, kind, variationSeed: `${post.id}:migrated:${kind}` }),
+        content: generateCommunityComment({ post, knowledge, role, kind, variationSeed: `${post.id}:migrated:${kind}` }),
         createdAt: post.createdAt,
         isAi: true,
         commentType: kind,
@@ -288,7 +292,7 @@ function appendCommunityComments(store, post, knowledge, author) {
       id: makeId('comment'),
       authorId: role.id,
       authorProfile: randomProfile(),
-      content: generateCommunityComment({ post, knowledge, kind, variationSeed: `${post.id}:${kind}:${index}` }),
+      content: generateCommunityComment({ post, knowledge, role, kind, variationSeed: `${post.id}:${kind}:${index}` }),
       createdAt: new Date().toISOString(),
       isAi: true,
       commentType: kind,
@@ -382,13 +386,13 @@ async function generatePost(knowledge, role, type, recentTitles = [], { onUsage,
   return { ...mockGeneratePost({ knowledge, role, type, variationSeed: variation.seed }), source: 'demo' };
 }
 
-async function generateReply(post, comment, role, recentReplies = [], knowledge, { onUsage, onFallback } = {}) {
+async function generateReply({ post, comment, parentComment, role, recentReplies = [], knowledge, isThreadReply = false, onUsage, onFallback } = {}) {
   const variation = createVariationBrief({ kind: 'reply', recentReplies });
-  const question = isQuestionComment(comment.content);
+  const question = isQuestionComment(comment.content) || Boolean(parentComment);
   try {
     const result = await callModel([
-      { role: 'system', content: buildReplySystemPrompt({ role, variation, isQuestion: question }) },
-      { role: 'user', content: buildReplyUserPrompt({ post, comment, knowledge, recentReplies: variation.recentReplies }) },
+      { role: 'system', content: buildReplySystemPrompt({ role, variation, isQuestion: question, isThreadReply }) },
+      { role: 'user', content: buildReplyUserPrompt({ post, comment, parentComment, knowledge, recentReplies: variation.recentReplies }) },
     ], { temperature: 0.9 });
     if (result) onUsage?.({ ...(result.usage || {}), model: result.model });
     if (result?.output) return result.output.trim();
@@ -396,7 +400,7 @@ async function generateReply(post, comment, role, recentReplies = [], knowledge,
     // Keep the interaction available when the model is offline or unavailable.
   }
   onFallback?.();
-  return generateFallbackReply({ post, comment, role, knowledge, variationSeed: variation.seed });
+  return generateFallbackReply({ post, comment, parentComment, role, knowledge, variationSeed: variation.seed });
 }
 
 async function generateKnowledgeAnswer(post, knowledge, role, { onUsage, onFallback } = {}) {
@@ -499,7 +503,7 @@ async function publishKnowledge(store, { knowledgeId, roleId, type = 'discussion
 
 async function runDueAutomation(store) {
   if (!store.settings.autoPostEnabled || !store.knowledge.some((item) => item.status === 'pending' && item.knowledgeBaseId === store.settings.activeKnowledgeBaseId)) return;
-  const interval = (24 * 60 * 60 * 1000) / Math.max(1, Number(store.settings.postsPerDay));
+  const interval = intervalMs(store.settings);
   const elapsed = Date.now() - new Date(store.settings.lastGeneratedAt || 0).getTime();
   if (elapsed >= interval) await publishKnowledge(store, { type: store.settings.defaultPostType, knowledgeBaseId: store.settings.activeKnowledgeBaseId });
 }
@@ -584,7 +588,12 @@ export const mobileApi = {
     const store = readStore();
     const post = store.posts.find((item) => item.id === id);
     if (!post) throw new Error('帖子不存在');
-    const question = isQuestionComment(content);
+    const replyToCommentId = String(body?.replyToCommentId || '').trim();
+    const parentComment = replyToCommentId ? post.comments.find((item) => item.id === replyToCommentId) : null;
+    if (replyToCommentId && !parentComment) throw new Error('要回复的评论不存在或已被删除');
+    const directQuestion = isQuestionComment(content);
+    const isThreadReply = Boolean(parentComment);
+    const question = directQuestion || Boolean(parentComment && isQuestionComment(parentComment.content));
     const knowledge = store.knowledge.find((item) => item.id === post.knowledgeId);
     const comment = {
       id: makeId('comment'),
@@ -595,30 +604,29 @@ export const mobileApi = {
       isAi: false,
       isQuestion: question,
       intent: question ? 'question' : 'comment',
+      ...(parentComment ? { replyToCommentId: parentComment.id } : {}),
     };
     post.comments.push(comment);
     const author = roleFor(store, post);
-    const responder = question ? chooseReplyRole(store, post, author) : author;
+    const parentRole = parentComment?.authorId ? store.roles.find((role) => role.id === parentComment.authorId) : null;
+    const responder = isThreadReply && parentRole ? parentRole : (question ? chooseReplyRole(store, post, author) : author);
     let aiReply = null;
-    if (responder && (question || Math.random() <= (responder.replyProbability ?? store.settings.replyProbability))) {
+    if (responder && (isThreadReply || question || Math.random() <= (responder.replyProbability ?? store.settings.replyProbability))) {
       aiReply = {
         id: makeId('comment'),
         authorId: responder.id,
         authorProfile: randomProfile(),
-        content: await generateReply(post, comment, responder, post.comments.filter((item) => item.isAi).map((item) => item.content), knowledge, {
-          onUsage: (usage) => recordTokenUsage(store, usage, 'reply'),
-          onFallback: () => recordFallbackUsage(store),
-        }),
+        content: await generateReply({ post, comment, parentComment, role: responder, isThreadReply, recentReplies: post.comments.filter((item) => item.isAi).map((item) => item.content), knowledge, onUsage: (usage) => recordTokenUsage(store, usage, 'reply'), onFallback: () => recordFallbackUsage(store) }),
         createdAt: new Date().toISOString(),
         isAi: true,
         replyType: question ? 'answer' : 'reply',
         replyToCommentId: comment.id,
       };
       post.comments.push(aiReply);
-      store.activity.unshift({ id: makeId('activity'), type: 'reply', text: `${responder.nickname} ${question ? '回答了' : '回复了'}社区访客`, createdAt: aiReply.createdAt, knowledgeBaseId: post.knowledgeBaseId });
+      store.activity.unshift({ id: makeId('activity'), type: 'reply', text: `${responder.nickname} ${isThreadReply ? '接着评论回答了' : question ? '回答了' : '回复了'}社区访客`, createdAt: aiReply.createdAt, knowledgeBaseId: post.knowledgeBaseId });
     }
     writeStore(store);
-    return { comment, aiReply, author: responder || author, responder: responder || author, isQuestion: question, immediate: question };
+    return { comment, aiReply, author: responder || author, responder: responder || author, isQuestion: question, isThreadReply, immediate: question || isThreadReply };
   },
   generate: async (body) => {
     const store = readStore();
@@ -692,7 +700,7 @@ export const mobileApi = {
     const nickname = String(body?.nickname || '').trim();
     const persona = String(body?.persona || '').trim();
     if (!nickname || !persona) throw new Error('昵称和人设不能为空');
-    const role = { id: makeId('role'), nickname, handle: String(body?.handle || `@${nickname}`).slice(0, 30), avatar: body?.avatar || `https://api.dicebear.com/9.x/notionists-neutral/svg?seed=${encodeURIComponent(nickname)}`, bio: String(body?.bio || ''), persona, postStyle: String(body?.postStyle || '用第一人称自然分享，结构清晰。'), replyStyle: String(body?.replyStyle || '保持友好并回应评论中的具体问题。'), tags: Array.isArray(body?.tags) ? body.tags.slice(0, 6) : [], activeHours: String(body?.activeHours || '09:00-22:00'), replyProbability: Number(body?.replyProbability ?? 0.75), color: body?.color || '#159889' };
+    const role = { id: makeId('role'), nickname, handle: String(body?.handle || `@${nickname}`).slice(0, 30), avatar: body?.avatar || `https://api.dicebear.com/9.x/notionists-neutral/svg?seed=${encodeURIComponent(nickname)}`, bio: String(body?.bio || ''), persona, postStyle: String(body?.postStyle || '用第一人称自然分享，结构清晰。'), replyStyle: String(body?.replyStyle || '保持友好并回应评论中的具体问题。'), tags: Array.isArray(body?.tags) ? body.tags.slice(0, 6) : [], activeHours: String(body?.activeHours || '09:00-22:00'), replyProbability: Number(body?.replyProbability ?? 0.75), mbti: normalizeMbti(body?.mbti), color: body?.color || '#159889' };
     const store = readStore();
     store.roles.push(role);
     writeStore(store);
@@ -702,7 +710,7 @@ export const mobileApi = {
     const store = readStore();
     const role = store.roles.find((item) => item.id === id);
     if (!role) throw new Error('角色不存在');
-    for (const key of ['nickname', 'handle', 'avatar', 'bio', 'persona', 'postStyle', 'replyStyle', 'tags', 'activeHours', 'replyProbability', 'color']) if (body?.[key] !== undefined) role[key] = body[key];
+    for (const key of ['nickname', 'handle', 'avatar', 'bio', 'persona', 'postStyle', 'replyStyle', 'tags', 'activeHours', 'replyProbability', 'mbti', 'color']) if (body?.[key] !== undefined) role[key] = key === 'mbti' ? normalizeMbti(body[key]) : body[key];
     writeStore(store);
     return role;
   },
@@ -716,7 +724,8 @@ export const mobileApi = {
   },
   updateSettings: async (body) => {
     const store = readStore();
-    for (const key of ['autoPostEnabled', 'postsPerDay', 'replyProbability', 'replyDelaySeconds', 'defaultPostType']) if (body?.[key] !== undefined) store.settings[key] = body[key];
+    for (const key of ['autoPostEnabled', 'postFrequencyUnit', 'postsPerDay', 'postsPerHour', 'replyProbability', 'replyDelaySeconds', 'defaultPostType']) if (body?.[key] !== undefined) store.settings[key] = body[key];
+    store.settings = normalizePostFrequency(store.settings);
     ensureKnowledgeBases(store);
     if (body?.activeKnowledgeBaseId && store.knowledgeBases.some((base) => base.id === body.activeKnowledgeBaseId)) {
       store.settings.activeKnowledgeBaseId = body.activeKnowledgeBaseId;

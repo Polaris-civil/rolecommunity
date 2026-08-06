@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Avatar } from '../components/Avatar.jsx';
 import { Modal } from '../components/Modal.jsx';
+import { SelectMenu } from '../components/SelectMenu.jsx';
 import { formatNumber, relativeTime } from '../utils.js';
 
 export function PostCard({ post, onOpen, onToggleLike }) {
@@ -97,22 +98,14 @@ function GenerateForm({ data, onClose, onGenerate }) {
         </div>
       </div>
       <div className="form-grid-2">
-        <label>
+        <div className="field-control">
           <span>发帖角色</span>
-          <select value={values.roleId} onChange={(event) => setValues({ ...values, roleId: event.target.value })}>
-            <option value="">智能匹配</option>
-            {data.roles.map((role) => <option key={role.id} value={role.id}>{role.nickname}</option>)}
-          </select>
-        </label>
-        <label>
+          <SelectMenu value={values.roleId} onChange={(value) => setValues({ ...values, roleId: value })} ariaLabel="发帖角色" options={[{ value: '', label: '智能匹配' }, ...data.roles.map((role) => ({ value: role.id, label: role.nickname }))]} />
+        </div>
+        <div className="field-control">
           <span>帖子形式</span>
-          <select value={values.type} onChange={(event) => setValues({ ...values, type: event.target.value })}>
-            <option value="discussion">讨论帖</option>
-            <option value="tutorial">教程帖</option>
-            <option value="question">问题帖</option>
-            <option value="interview">面试帖</option>
-          </select>
-        </label>
+          <SelectMenu value={values.type} onChange={(value) => setValues({ ...values, type: value })} ariaLabel="帖子形式" options={[{ value: 'discussion', label: '讨论帖' }, { value: 'tutorial', label: '教程帖' }, { value: 'question', label: '问题帖' }, { value: 'interview', label: '面试帖' }]} />
+        </div>
       </div>
       <div className="generation-preview">
         <Sparkles size={17} />
